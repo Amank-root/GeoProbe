@@ -1,0 +1,646 @@
+{
+  "$defs": {
+    "CheckResult": {
+      "additionalProperties": true,
+      "properties": {
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "confidence": {
+          "default": "high",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        },
+        "fix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixHint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "message": {
+          "default": "",
+          "title": "Message",
+          "type": "string"
+        },
+        "points": {
+          "default": 0.0,
+          "title": "Points",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "skip",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "default": "",
+          "title": "Title",
+          "type": "string"
+        },
+        "weight": {
+          "default": 0,
+          "title": "Weight",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "status"
+      ],
+      "title": "CheckResult",
+      "type": "object"
+    },
+    "EvalFailure": {
+      "additionalProperties": true,
+      "properties": {
+        "likely_cause": {
+          "default": "unknown",
+          "enum": [
+            "content_not_in_crawler_view",
+            "content_ambiguous",
+            "answerer_error",
+            "unknown"
+          ],
+          "title": "Likely Cause",
+          "type": "string"
+        },
+        "outcomes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Outcomes",
+          "type": "array"
+        },
+        "page": {
+          "title": "Page",
+          "type": "string"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "reference_answer": {
+          "title": "Reference Answer",
+          "type": "string"
+        },
+        "span_retrieved": {
+          "default": false,
+          "title": "Span Retrieved",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "page",
+        "question",
+        "reference_answer"
+      ],
+      "title": "EvalFailure",
+      "type": "object"
+    },
+    "EvalResult": {
+      "additionalProperties": true,
+      "properties": {
+        "abstention_rate": {
+          "default": 0.0,
+          "title": "Abstention Rate",
+          "type": "number"
+        },
+        "answerability": {
+          "additionalProperties": true,
+          "title": "Answerability",
+          "type": "object"
+        },
+        "answerer_model": {
+          "title": "Answerer Model",
+          "type": "string"
+        },
+        "confidence": {
+          "default": "high",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "context_recall": {
+          "default": 0.0,
+          "title": "Context Recall",
+          "type": "number"
+        },
+        "coverage_loss": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage Loss"
+        },
+        "eval_version": {
+          "default": "1",
+          "title": "Eval Version",
+          "type": "string"
+        },
+        "failures": {
+          "items": {
+            "$ref": "#/$defs/EvalFailure"
+          },
+          "title": "Failures",
+          "type": "array"
+        },
+        "ground_truth": {
+          "enum": [
+            "facts",
+            "rendered",
+            "facts+rendered",
+            "crawler_only"
+          ],
+          "title": "Ground Truth",
+          "type": "string"
+        },
+        "hallucination_rate": {
+          "default": 0.0,
+          "title": "Hallucination Rate",
+          "type": "number"
+        },
+        "judge_model": {
+          "title": "Judge Model",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "pages_evaluated": {
+          "title": "Pages Evaluated",
+          "type": "integer"
+        },
+        "questions_per_page": {
+          "title": "Questions Per Page",
+          "type": "integer"
+        },
+        "retrieval": {
+          "$ref": "#/$defs/RetrievalReport"
+        },
+        "retrieval_gap": {
+          "default": 0.0,
+          "title": "Retrieval Gap",
+          "type": "number"
+        },
+        "trials": {
+          "title": "Trials",
+          "type": "integer"
+        },
+        "usage": {
+          "$ref": "#/$defs/EvalUsage"
+        }
+      },
+      "required": [
+        "ground_truth",
+        "answerer_model",
+        "judge_model",
+        "trials",
+        "questions_per_page",
+        "pages_evaluated",
+        "retrieval"
+      ],
+      "title": "EvalResult",
+      "type": "object"
+    },
+    "EvalUsage": {
+      "additionalProperties": true,
+      "properties": {
+        "cache_hits": {
+          "default": 0,
+          "title": "Cache Hits",
+          "type": "integer"
+        },
+        "estimated_cost_usd": {
+          "default": 0.0,
+          "title": "Estimated Cost Usd",
+          "type": "number"
+        },
+        "input_tokens": {
+          "default": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "default": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        }
+      },
+      "title": "EvalUsage",
+      "type": "object"
+    },
+    "FixHint": {
+      "additionalProperties": true,
+      "properties": {
+        "docs_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Docs Url"
+        },
+        "machine": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Machine"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "FixHint",
+      "type": "object"
+    },
+    "PageSummary": {
+      "additionalProperties": true,
+      "properties": {
+        "h1_count": {
+          "default": 0,
+          "title": "H1 Count",
+          "type": "integer"
+        },
+        "json_ld_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Json Ld Types",
+          "type": "array"
+        },
+        "status_by_bot": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Status By Bot",
+          "type": "object"
+        },
+        "text_chars": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Text Chars",
+          "type": "object"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "PageSummary",
+      "type": "object"
+    },
+    "RetrievalReport": {
+      "additionalProperties": true,
+      "properties": {
+        "chunk_count": {
+          "title": "Chunk Count",
+          "type": "integer"
+        },
+        "chunk_overlap_pct": {
+          "title": "Chunk Overlap Pct",
+          "type": "integer"
+        },
+        "chunk_target_tokens": {
+          "title": "Chunk Target Tokens",
+          "type": "integer"
+        },
+        "embedding_model": {
+          "title": "Embedding Model",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "chunked",
+            "whole_page"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "top_k": {
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "top_k",
+        "chunk_target_tokens",
+        "chunk_overlap_pct",
+        "embedding_model",
+        "chunk_count"
+      ],
+      "title": "RetrievalReport",
+      "type": "object"
+    },
+    "RunError": {
+      "additionalProperties": true,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "default": "warning",
+          "enum": [
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "RunError",
+      "type": "object"
+    },
+    "RunInfo": {
+      "additionalProperties": true,
+      "properties": {
+        "checks_version": {
+          "default": "2026.10.0",
+          "title": "Checks Version",
+          "type": "string"
+        },
+        "config": {
+          "additionalProperties": true,
+          "title": "Config",
+          "type": "object"
+        },
+        "duration_ms": {
+          "default": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "eval_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eval Version"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "started_at"
+      ],
+      "title": "RunInfo",
+      "type": "object"
+    },
+    "ScoreCategory": {
+      "additionalProperties": true,
+      "properties": {
+        "max": {
+          "default": 0.0,
+          "title": "Max",
+          "type": "number"
+        },
+        "points": {
+          "default": 0.0,
+          "title": "Points",
+          "type": "number"
+        }
+      },
+      "title": "ScoreCategory",
+      "type": "object"
+    },
+    "ScoreReport": {
+      "additionalProperties": true,
+      "properties": {
+        "categories": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ScoreCategory"
+          },
+          "title": "Categories",
+          "type": "object"
+        },
+        "max": {
+          "default": 100.0,
+          "title": "Max",
+          "type": "number"
+        },
+        "overall": {
+          "default": 0.0,
+          "title": "Overall",
+          "type": "number"
+        }
+      },
+      "title": "ScoreReport",
+      "type": "object"
+    },
+    "TargetInfo": {
+      "additionalProperties": true,
+      "properties": {
+        "final_url": {
+          "title": "Final Url",
+          "type": "string"
+        },
+        "pages_audited": {
+          "default": 0,
+          "title": "Pages Audited",
+          "type": "integer"
+        },
+        "sitemap_found": {
+          "default": false,
+          "title": "Sitemap Found",
+          "type": "boolean"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "final_url"
+      ],
+      "title": "TargetInfo",
+      "type": "object"
+    },
+    "ToolInfo": {
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "default": "geoctl",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "default": "0.1.0",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "title": "ToolInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "description": "The top-level document. `geoctl audit --format json` emits exactly this.",
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/CheckResult"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/RunError"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "eval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EvalResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pages": {
+      "items": {
+        "$ref": "#/$defs/PageSummary"
+      },
+      "title": "Pages",
+      "type": "array"
+    },
+    "run": {
+      "$ref": "#/$defs/RunInfo"
+    },
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score": {
+      "$ref": "#/$defs/ScoreReport"
+    },
+    "target": {
+      "$ref": "#/$defs/TargetInfo"
+    },
+    "tool": {
+      "$ref": "#/$defs/ToolInfo"
+    }
+  },
+  "required": [
+    "run",
+    "target"
+  ],
+  "title": "AuditReport",
+  "type": "object"
+}

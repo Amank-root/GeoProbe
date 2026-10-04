@@ -1,0 +1,24 @@
+checks:
+  ACC-001: pass
+  ACC-002: pass
+  ACC-003: pass
+  DIS-001: pass
+  DIS-002: pass
+  DIS-003: pass
+  REN-001: pass
+  REN-002: pass
+  SD-001: pass
+  SD-002: warn
+  SD-003: pass
+  SITE-001: fail
+  STR-001: pass
+  STR-002: pass
+  STR-003: pass
+  STR-004: pass
+  STR-005: pass
+  STR-006: pass
+  TRU-001: warn
+  TRU-002: pass
+covers: 'row 21: DevRel persona, the strongest known-good case'
+fixture: docs-site
+known_good: true
