@@ -21,6 +21,7 @@
 | 8 | [ROADMAP.md](ROADMAP.md) | Milestones, deliverables, exit criteria |
 | 9 | [DECISIONS.md](DECISIONS.md) | ADRs: language, license, telemetry, open-core boundary, etc. |
 | 10 | [FIXTURES.md](FIXTURES.md) | Fixture-site coverage spec for calibration and CI |
+| 11 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute: setup, adding checks and fixtures, expectations |
 
 ## One-paragraph pitch
 

@@ -10,7 +10,7 @@ Goal: remove the biggest unknowns before writing product code.
 
 - [x] Confirm name; check PyPI / npm / GitHub / domain availability — **done**: `geoprobe` unusable (PyPI taken, competitor at `geoprobe.ai`); `geoctl` adopted, free on all channels ([#4](https://github.com/Amank-root/GeoProbe/issues/4), [#7](https://github.com/Amank-root/GeoProbe/issues/7))
 - [x] Decide license (ADR-004) — **done**: AGPL-3.0-only ([#5](https://github.com/Amank-root/GeoProbe/issues/5))
-- [ ] Spike: trafilatura output quality on 10 varied sites (docs, blog, SPA, e-commerce)
+- [x] Spike: trafilatura output quality on varied sites (docs, blog, SPA, e-commerce) — **done**: good on server-rendered content; the real failure mode is client-side rendering, where `favor_precision` vs `favor_recall` differ by **33x** on the same HTML. Extraction is therefore adaptive, not a fixed setting (ADR-016)
 - [x] Spike: robots.txt parser choice — **done**: Protego; stdlib fails wildcards, `$`, and `Allow` precedence (ADR-013)
 - [ ] Spike: LiteLLM cost/usage reporting accuracy across two providers — **blocked, deferred to Milestone 1**: needs two funded provider accounts. A dry run cannot settle it, since `--dry-run` makes no API call and so tests the estimator rather than post-call accounting. Interim decision in ADR-015: cost is always reported as an estimate, never as billing.
 - [x] Spike: question generation quality — **done**: ground-truth tiers and their independence ordering settled in ADR-014
