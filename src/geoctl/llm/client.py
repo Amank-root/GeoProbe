@@ -20,7 +20,13 @@ from ..util import content_hash
 
 # Per-call timeout. Long enough for a judge on a large context, short enough
 # that a hung provider does not stall an audit.
-CALL_TIMEOUT = 60.0
+#
+# Sized for reasoning models, not for ordinary chat models. Measured on
+# nvidia/nemotron-3.5-lightning-30b-a3b: question generation over a real 18k-char
+# page took 31s and emitted 2,903 tokens, against a few hundred for a plain
+# chat answer. At the previous 60s the generation call timed out on exactly the
+# pages that need the eval most (issue #46).
+CALL_TIMEOUT = 300.0
 MAX_RETRIES = 3
 BACKOFF_BASE = 1.5
 
@@ -53,7 +59,28 @@ FALLBACK_PRICING: dict[str, tuple[float, float]] = {
     "text-embedding-3-small": (0.02, 0.00),
     "text-embedding-3-large": (0.13, 0.00),
     "text-embedding-ada-002": (0.10, 0.00),
+    # Z.AI published list prices, USD per 1M tokens (docs.z.ai pricing page).
+    # Recorded at list rather than the promotional rate, because a launch
+    # discount is not a price a run can be expected to keep (ADR-015).
+    "glm-5.3-flash": (0.15, 0.50),
+    "glm-5.3-flashx": (0.37, 1.25),
+    "glm-5.3": (1.40, 4.40),
 }
+
+# Deliberately absent: the models reachable from NVIDIA's hosted endpoint at
+# integrate.api.nvidia.com (nvidia/nemotron-3.5-lightning-30b-a3b,
+# nvidia/nemotron-3-embed-1b). That endpoint currently charges nothing, but
+# entering 0.00 here would be the worst possible entry in this table: `known_price`
+# would return a real number, `--max-cost` would never trip, and the guard that
+# exists to stop unbounded spend would silently approve every run. An unknown
+# price is the honest state and the one the guard is written for. If NVIDIA
+# introduces paid pricing, the rate goes here, not a zero.
+NVIDIA_UNPRICED_NOTE = (
+    "NVIDIA's hosted endpoint (nvidia/*) has no price recorded because its current "
+    "terms are free. That is reported as unknown rather than as $0.00, so --max-cost "
+    "still refuses rather than treating the run as costless. Supply the real rate "
+    "with --input-cost-per-mtok / --output-cost-per-mtok if it changes."
+)
 
 # Embedding models charge on input only, so an output rate of 0 is correct
 # rather than missing. `is_embedding_model` lets the cost guard explain that a
@@ -64,12 +91,16 @@ EMBEDDING_PREFIXES = (
     "embedding-001",
     "embedding-004",
     "embed-",
+    # NVIDIA names its embedding model `nemotron-3-embed-1b`. Matched on the
+    # `-embed` infix rather than a bare "embed" substring so that an ordinary
+    # chat model is not misclassified as one (issue #46).
+    "-embed",
 )
 
 
 def is_embedding_model(model: str) -> bool:
     short = model.split("/")[-1].lower()
-    return short.startswith(EMBEDDING_PREFIXES)
+    return short.startswith(EMBEDDING_PREFIXES) or "-embed" in short
 
 
 class ProviderError(Exception):
@@ -104,6 +135,26 @@ class Usage:
         self.cost_usd += other.cost_usd
         self.cache_hits += other.cache_hits
         self.calls += other.calls
+
+
+@dataclass(frozen=True)
+class Completion:
+    """A completion plus the finish reason.
+
+    `finish_reason` is load-bearing rather than diagnostic. A reasoning model
+    emits a chain of thought before the answer; if the token budget runs out
+    first, the response comes back `finish_reason="length"` with the *reasoning
+    trace* in the message content and no answer at all. Reading that trace as if
+    it were the answer is how a correctly-answered question gets scored as a
+    failure (issue #46).
+    """
+
+    text: str
+    finish_reason: str = "stop"
+
+    @property
+    def truncated(self) -> bool:
+        return self.finish_reason == "length"
 
 
 @dataclass(frozen=True)
@@ -167,8 +218,8 @@ class LLMClient:
         max_tokens: int | None = None,
         model: str | None = None,
         expect_json: bool = False,
-    ) -> str:
-        """One completion, cached. Returns the assistant's text."""
+    ) -> Completion:
+        """One completion, cached. Returns the text and the finish reason."""
         target = model or self.model
         key = (target, *self.key(max_tokens, system, prompt))
         cached = self.cache.get(NS_LLM, *key) if (self.use_cache and self.cache) else None
@@ -180,9 +231,12 @@ class LLMClient:
                 cache_hits=1,
             )
             self.usage.add(replay)
-            return str(cached["text"])
+            return Completion(
+                text=str(cached["text"]),
+                finish_reason=str(cached.get("finish_reason", "stop")),
+            )
 
-        text, call_usage = self._call(
+        completion, call_usage = self._call(
             target, prompt, system=system, max_tokens=max_tokens, expect_json=expect_json
         )
         self.usage.add(call_usage)
@@ -190,14 +244,19 @@ class LLMClient:
             self.cache.set(
                 NS_LLM,
                 {
-                    "text": text,
+                    "text": completion.text,
                     "input_tokens": call_usage.input_tokens,
                     "output_tokens": call_usage.output_tokens,
                     "cost_usd": call_usage.cost_usd,
+                    "finish_reason": completion.finish_reason,
                 },
                 *key,
             )
-        return text
+        return completion
+
+    def complete_text(self, prompt: str, **kwargs: Any) -> str:
+        """Convenience wrapper for callers that do not care about truncation."""
+        return self.complete(prompt, **kwargs).text
 
     def _call(
         self,
@@ -207,7 +266,7 @@ class LLMClient:
         system: str | None,
         max_tokens: int | None,
         expect_json: bool,
-    ) -> tuple[str, Usage]:
+    ) -> tuple[Completion, Usage]:
         try:
             import litellm
         except ImportError as exc:  # pragma: no cover - litellm is a hard dependency
@@ -238,9 +297,8 @@ class LLMClient:
                 if self.endpoint.api_key:
                     kwargs["api_key"] = self.endpoint.api_key
                 response = litellm.completion(**kwargs)
-                text = _message_text(response)
                 usage = _usage_from(response, model, self)
-                return text, usage
+                return _completion_from(response), usage
             except Exception as exc:
                 last_error = exc
                 if attempt < MAX_RETRIES - 1:
@@ -248,12 +306,28 @@ class LLMClient:
         raise ProviderError(_classify(last_error))
 
 
-def _message_text(response: Any) -> str:
+def _completion_from(response: Any) -> Completion:
+    """Text plus finish reason, with a guard against a missing message.
+
+    Some OpenAI-compatible hosts return `content: null` and put the text in
+    `reasoning_content` instead. Falling back to that field is what makes a
+    reasoning model usable at all; returning empty would silently score every
+    answer as a failure.
+    """
     try:
-        content = response.choices[0].message.content
+        message = response.choices[0].message
+        finish_reason = str(getattr(response.choices[0], "finish_reason", "") or "stop")
     except (AttributeError, IndexError, KeyError) as exc:
         raise ProviderError(f"unexpected response shape: {type(response).__name__}") from exc
-    return str(content or "").strip()
+
+    content = getattr(message, "content", None)
+    if content is None:
+        content = getattr(message, "reasoning_content", None)
+    return Completion(text=str(content or "").strip(), finish_reason=finish_reason)
+
+
+def _message_text(response: Any) -> str:
+    return _completion_from(response).text
 
 
 def _usage_from(response: Any, model: str, client: LLMClient | None = None) -> Usage:

@@ -34,9 +34,11 @@ from .checks import UnknownCheck
 from .config import ConfigError, apply_overrides, has_provider_key, load_config
 from .evals import engine as eval_engine
 from .evals import load_facts
+from .evals.answer import ANSWERER_MAX_TOKENS
 from .evals.runner import decide_threshold
 from .fetch.ssrf import BlockedTarget as SSRFBlocked
-from .llm.client import CostLimitExceeded, ProviderError, UnknownPricing
+from .llm import providers
+from .llm.client import CostLimitExceeded, Endpoint, ProviderError, UnknownPricing
 
 EXIT_OK = 0
 EXIT_THRESHOLD = 1
@@ -305,6 +307,12 @@ def _audit_command(
     except CostLimitExceeded as exc:
         _err(str(exc))
         raise typer.Exit(EXIT_COST) from exc
+    except eval_engine.EvalSkipped as exc:
+        # A skip is a known, explainable outcome — not a crash. Letting it reach
+        # main() made every "no questions could be produced" run print
+        # "internal error ... please report" and exit 70, telling the user to file
+        # a bug against their own website (issue #46).
+        eval_result, eval_error = None, str(exc)
     finally:
         for line in eval_costs:
             _note(line)
@@ -654,23 +662,41 @@ def doctor(
 
 
 def _provider_keys() -> list[str]:
-    from .config import PROVIDER_KEY_VARS
+    """Key variables actually set in the environment.
 
-    return list(PROVIDER_KEY_VARS)
+    Reports the names present, not the canonical list, so `doctor` names the
+    variable the user actually set — including a suffixed one such as
+    `GEMINI_API_KEY_1`.
+    """
+    return providers.present_key_vars()
 
 
 def _test_keys(keys: list[str]) -> list[str]:
-    """One minimal call per key. Reports presence and validity separately."""
+    """One minimal call per key. Reports presence and validity separately.
+
+    Each key is tested with a model that key can actually call, including the
+    base URL for OpenAI-compatible hosts LiteLLM has no first-class provider for.
+    Hardcoding one OpenAI model for every provider made `--test-keys` report a
+    working NVIDIA or Groq key as broken (issue #45).
+    """
     problems: list[str] = []
     for var in keys:
-        provider = var.removesuffix("_API_KEY").lower()
+        provider = providers.provider_for_key_var(var)
+        if provider is None:
+            problems.append(f"{var}: not a key geoctl recognises")
+            continue
         try:
             from .llm.client import LLMClient
 
-            LLMClient(model=f"{provider}/gpt-4o-mini", cache=None, use_cache=False).complete(
-                "reply with OK", max_tokens=5
-            )
-            emit(f"  {var}: accepted")
+            endpoint = Endpoint(base_url=provider.base_url, api_key=os.environ.get(var))
+            LLMClient(
+                model=provider.model,
+                cache=None,
+                use_cache=False,
+                endpoint=endpoint,
+            ).complete_text("reply with OK", max_tokens=ANSWERER_MAX_TOKENS)
+            target = f" via {provider.base_url}" if provider.base_url else ""
+            emit(f"  {var}: accepted ({provider.model}{target})")
         except ProviderError as exc:
             problems.append(f"{var}: {exc}")
         except Exception as exc:

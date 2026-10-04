@@ -11,7 +11,7 @@ import json
 import re
 from dataclasses import dataclass
 
-from .answer import NOT_FOUND
+from .answer import JUDGE_MAX_TOKENS, NOT_FOUND
 
 CORRECT = "correct"
 PARTIAL = "partially_correct"
@@ -114,7 +114,20 @@ def judge(
         return Judgement(verdict=ABSTAINED, rationale="candidate reported not found")
     prompt = build_prompt(question, reference, candidate)
     try:
-        raw = llm.complete(prompt, system=JUDGE_SYSTEM, max_tokens=200, expect_json=True)  # type: ignore[attr-defined]
+        completion = llm.complete(  # type: ignore[attr-defined]
+            prompt, system=JUDGE_SYSTEM, max_tokens=JUDGE_MAX_TOKENS, expect_json=True
+        )
     except Exception as exc:
         return Judgement(verdict=ABSTAINED, rationale=f"judge error: {type(exc).__name__}: {exc}")
-    return parse(raw, candidate_abstained=abstained)
+    # Same failure as the answerer: a reasoning judge that runs out of budget
+    # returns its trace, not a verdict. `parse` would read "correct" or
+    # "abstained" out of the prose and score the answer on the model's
+    # reasoning style (issue #46).
+    if getattr(completion, "truncated", False):
+        return Judgement(
+            verdict=ABSTAINED,
+            rationale=(
+                f"judge response hit the {JUDGE_MAX_TOKENS}-token limit (finish_reason=length)"
+            ),
+        )
+    return parse(completion.text, candidate_abstained=abstained)

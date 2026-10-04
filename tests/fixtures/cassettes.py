@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import json
 
+from geoctl.llm.client import Completion
+
 
 class SubstringScriptedLLM:
     """Matches scripted responses by substring of the prompt.
@@ -25,6 +27,12 @@ class SubstringScriptedLLM:
     def __init__(self) -> None:
         self.rules: list[tuple[str, str]] = []
         self.calls: list[tuple[str, str]] = []
+        # Set to "length" to script a truncated (reasoning-trace) response, which
+        # is how a real reasoning model behaves when its budget runs out.
+        self.finish_reason = "stop"
+        # Recorded max_tokens per call, so a test can assert the budget the
+        # answerer and judge actually request.
+        self.requested_budgets: list[int | None] = []
 
     def on(self, needle: str, response: str) -> SubstringScriptedLLM:
         self.rules.append((needle, response))
@@ -38,12 +46,16 @@ class SubstringScriptedLLM:
         max_tokens: int | None = None,
         model: str | None = None,
         expect_json: bool = False,
-    ) -> str:
+    ) -> Completion:
         self.calls.append((system or "", prompt))
+        self.requested_budgets.append(max_tokens)
         for needle, response in self.rules:
             if needle in prompt:
-                return response
+                return Completion(text=response, finish_reason=self.finish_reason)
         raise AssertionError(f"No recorded response matched prompt containing {prompt[:120]!r}")
+
+    def complete_text(self, prompt: str, **kwargs: object) -> str:
+        return self.complete(prompt, **kwargs).text  # type: ignore[arg-type]
 
 
 def generated_questions(rows: list[tuple[str, str, str]]) -> str:

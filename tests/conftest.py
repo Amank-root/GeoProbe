@@ -7,6 +7,7 @@ an LLM gets a recorded cassette.
 
 from __future__ import annotations
 
+import os
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -45,6 +46,28 @@ class _Handler(BaseHTTPRequestHandler):
 def serve_site(serve):  # type: ignore[no-untyped-def]
     """Serve a named FixtureSite and yield its base URL."""
     return serve
+
+
+@pytest.fixture(autouse=True)
+def no_provider_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Guarantee the suite's "no API key" precondition, whatever the shell has.
+
+    The suite must pass on a developer machine that has real keys exported —
+    otherwise "run the tests locally" and "run the tests in CI" test different
+    things, and the failure looks like a defect in the tool rather than leakage
+    from the environment. Deleting the *recognised* provider keys, via the
+    provider registry, also keeps this correct as providers are added; a
+    hardcoded list of names silently stops covering them (issue #45).
+    """
+    from geoctl.llm import providers
+
+    names = list(providers.known_key_vars())
+    # Suffixed variants too: GEMINI_API_KEY_1 is a real key someone has exported.
+    for name in list(os.environ):
+        if any(providers.key_matches(name, base) for base in names):
+            names.append(name)
+    for name in names:
+        monkeypatch.delenv(name, raising=False)
 
 
 @pytest.fixture

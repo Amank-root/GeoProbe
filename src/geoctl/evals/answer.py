@@ -13,6 +13,18 @@ from typing import Any
 
 NOT_FOUND = "NOT_FOUND"
 
+# Reasoning models emit a chain of thought before the answer and count it
+# against max_tokens. With the 300-token budget the answerer used, a reasoning
+# model spends the whole budget thinking, returns finish_reason="length" with
+# the trace as its content, and never produces an answer — so a fully answered
+# question was scored as a miss (issue #46). Measured against
+# nvidia/nemotron-3.5-lightning-30b-a3b: 300 tokens truncated, 800 completed.
+#
+# Raising the budget costs nothing on non-reasoning models, which stop early and
+# bill only what they emit.
+ANSWERER_MAX_TOKENS = 4000
+JUDGE_MAX_TOKENS = 4000
+
 ANSWERER_SYSTEM = f"""You answer questions using ONLY the retrieved context provided.
 
 Rules, in priority order:
@@ -71,7 +83,7 @@ def answer(llm: Any, question: str, chunks: list[tuple[Any, float]]) -> Candidat
     """One answer from the retrieved context. Failures become abstentions-with-error."""
     prompt = build_prompt(question, chunks)
     try:
-        raw = llm.complete(prompt, system=ANSWERER_SYSTEM, max_tokens=300)
+        completion = llm.complete(prompt, system=ANSWERER_SYSTEM, max_tokens=ANSWERER_MAX_TOKENS)
     except Exception as exc:
         return Candidate(
             question=question,
@@ -79,6 +91,21 @@ def answer(llm: Any, question: str, chunks: list[tuple[Any, float]]) -> Candidat
             abstained=True,
             error=f"{type(exc).__name__}: {exc}",
         )
-    candidate = parse(raw)
+
+    # A truncated response is not an answer. Recording it as a plain abstention
+    # would blame the site for the model's token budget, so it is reported as an
+    # error the runner counts separately (issue #46).
+    if getattr(completion, "truncated", False):
+        return Candidate(
+            question=question,
+            answer=NOT_FOUND,
+            abstained=True,
+            error=(
+                f"answerer response hit the {ANSWERER_MAX_TOKENS}-token limit "
+                "before producing an answer (finish_reason=length)"
+            ),
+        )
+
+    candidate = parse(completion.text)
     candidate.question = question
     return candidate
