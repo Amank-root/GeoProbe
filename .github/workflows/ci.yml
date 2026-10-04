@@ -3,6 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+    # Tag pushes must trigger the workflow too. Without this, a `v*` tag
+    # produced no run at all, so the release job below could never be reached
+    # and always reported as skipped rather than attempted.
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
