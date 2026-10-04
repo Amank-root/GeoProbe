@@ -1,6 +1,9 @@
 # geoprobe: Product Documentation
 
-> **Working name.** `geoprobe` is a placeholder. Check PyPI, npm, and GitHub for collisions before committing.
+> **Working name.** `geoprobe` is a placeholder and **cannot be used as-is**: it is taken on
+> PyPI by a dormant, unrelated project, and an operating commercial product with
+> overlapping scope already runs at `geoprobe.ai`. Collision check complete; replacement
+> name open. See [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 
 An open-source CLI that tells you whether AI systems can **reach**, **read**, and **correctly answer questions from** your website, then helps you fix what's broken. Bring your own LLM keys; runs locally or in CI; no account.
 

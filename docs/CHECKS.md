@@ -314,6 +314,13 @@ fixtures live alongside the implementation in `src/geoprobe/checks/` and
   the control file. Large-scale published analyses of AI crawler traffic, and of the July
   2026 Common Crawl archive, find the file essentially never fetched in practice, and
   observational studies find no citation-rate difference for domains that publish one.
+- **Counter-observation (recorded, not acted on):** commercial tools in this space do score
+  it — the incumbent at `geoprobe.ai` weights `llms.txt` at 10 of 100 points and ships an
+  `llms.txt` generator. That is evidence about what the market rewards, not evidence about
+  whether crawlers fetch the file, and this project's stated premise is that the two
+  questions are different. It is recorded here so the position is a deliberate,
+  revisable choice rather than an unexamined one. See
+  [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 - **Consequence:** the report states this in plain language rather than implying the file
   is required, and the tool does **not** penalize its absence. `geoprobe generate llms-txt`
   (v0.2) exists for users who want one anyway.
