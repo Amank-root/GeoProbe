@@ -1,6 +1,6 @@
 # Check Catalog
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
 This is the v0.1 catalog. Two tiers:
 
@@ -77,13 +77,13 @@ present in `checks[]` with `weight: 0` in JSON.
 | SITE-001 | Site | HTTPS, HSTS, redirect chain sanity |
 
 Pass/warn/fail criteria for each are given below, in this document. Per-check detail and
-fixtures live alongside the implementation in `src/geoprobe/checks/` and
+fixtures live alongside the implementation in `src/geoctl/checks/` and
 `tests/fixtures/checks/`. Rationale for informational status, by group:
 
 - **Structure / Structured data / Trust:** standard SEO hygiene. Real value, but
   Lighthouse, axe-core, and every commercial checker already report them, and none is
   specific to AI crawlers. A user who wants them scored should run Lighthouse in the same
-  CI step. `geoprobe` prints them so there is one place to look, and explicitly declines
+  CI step. `geoctl` prints them so there is one place to look, and explicitly declines
   to have a weighted opinion about them.
 - **DIS-002** (indexing directives): a `noindex` on a page in the sitemap is a real
   contradiction worth surfacing loudly, but it is a contradiction about search indexing,
@@ -231,7 +231,7 @@ fixtures live alongside the implementation in `src/geoprobe/checks/` and
   content than the browser on a majority of pages.
 - **Evidence:** per-bot status, size ratio, and text similarity per page.
 - **Notes:** Catches WAF/CDN rules and user-agent cloaking, which a robots.txt parse
-  cannot see. Simulated requests send `X-Geoprobe-Test: 1`. This is the most valuable
+  cannot see. Simulated requests send `X-Geoctl-Test: 1`. This is the most valuable
   thing the deterministic layer does, which is why it carries the largest weight.
 
 ### ACC-001: robots.txt rules per AI bot (25)
@@ -322,7 +322,7 @@ fixtures live alongside the implementation in `src/geoprobe/checks/` and
   revisable choice rather than an unexamined one. See
   [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 - **Consequence:** the report states this in plain language rather than implying the file
-  is required, and the tool does **not** penalize its absence. `geoprobe generate llms-txt`
+  is required, and the tool does **not** penalize its absence. `geoctl generate llms-txt`
   (v0.2) exists for users who want one anyway.
 
 ## 8. Adding or changing checks

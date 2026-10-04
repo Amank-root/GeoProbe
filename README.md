@@ -1,23 +1,24 @@
-# geoprobe
+# geoctl
 
 > **Status: pre-release.** v0.1 is in development. This README describes the intended
 > behavior; the check catalog and scoring are still being calibrated.
 
-> **Working name.** `geoprobe` is a placeholder and **cannot be used as-is**: the name is
-> taken on PyPI (a dormant, unrelated seismic-data library) and an operating commercial
-> product with overlapping scope already runs at `geoprobe.ai`. The collision check is
-> done; the replacement name is still open. Until it is settled, `geoprobe` appears
-> throughout only as a working name. See [#4](https://github.com/Amank-root/GeoProbe/issues/4).
+**geoctl** — *Generative Engine Optimization control*. An open-source CLI that tells you
+whether AI systems can **reach**, **read**, and **correctly answer questions from** your
+website, and helps you fix what's broken. Bring your own LLM keys. Runs locally or in CI.
+No account, no server.
 
-An open-source CLI that tells you whether AI systems can **reach**, **read**, and
-**correctly answer questions from** your website, and helps you fix what's broken.
-Bring your own LLM keys. Runs locally or in CI. No account, no server.
+> **On the name.** `geoctl` was chosen after a collision check found the earlier working
+> name (`geoprobe`) unusable: taken on PyPI by an unrelated project, and in active use by
+> a commercial product at `geoprobe.ai`. `geoctl` is free on PyPI, npm, and GitHub. The
+> expansion is spelled out above because "geo" alone reads as *geospatial* to many
+> developers. See [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 
 ## Why this exists
 
 Most GEO/AEO tools count artifacts — robots.txt rules, `llms.txt`, JSON-LD, sitemap —
 and roll them into a 0–100 score. There are a dozen good open-source tools that already
-do that, well. `geoprobe` deliberately keeps only the checks that are specific to AI
+do that, well. `geoctl` deliberately keeps only the checks that are specific to AI
 crawler access, and spends its effort on the part that isn't commodity:
 
 > **The answerability eval.** Give an LLM only what a *retrieval-style* text crawler
@@ -32,33 +33,33 @@ the right span is the actual failure mode for AI answers, so the eval measures i
 ## Install
 
 ```bash
-uvx geoprobe audit https://example.com     # one-off, no install
-pipx install geoprobe                      # installed
-geoprobe audit https://example.com
+uvx geoctl audit https://example.com     # one-off, no install
+pipx install geoctl                      # installed
+geoctl audit https://example.com
 ```
 
 Optional JS rendering (adds Playwright):
 
 ```bash
-pipx install "geoprobe[render]"
+pipx install "geoctl[render]"
 ```
 
 ## Quickstart
 
 ```bash
 # Deterministic checks only — no API key needed
-geoprobe audit https://example.com
+geoctl audit https://example.com
 
 # With the answerability eval (uses your own key, e.g. OPENAI_API_KEY)
 export OPENAI_API_KEY=...
-geoprobe audit https://example.com --eval
+geoctl audit https://example.com --eval
 
 # Best signal: supply your own facts as ground truth
-geoprobe init                               # writes geoprobe.toml + facts.yaml
-geoprobe audit https://example.com --eval --facts facts.yaml
+geoctl init                               # writes geoctl.toml + facts.yaml
+geoctl audit https://example.com --eval --facts facts.yaml
 
 # Gate CI
-geoprobe audit https://example.com --eval --fail-under-eval 70
+geoctl audit https://example.com --eval --fail-under-eval 70
 ```
 
 ## What it does and does not measure
@@ -94,7 +95,7 @@ number, so you can always see which signal moved:
 - Site content never leaves your machine except to the LLM provider you configured.
 - Telemetry is **opt-in**, allow-listed, and never contains URLs, page content, file
   paths, or keys. See [docs/TELEMETRY.md](docs/TELEMETRY.md).
-- Simulated bot requests send an `X-Geoprobe-Test: 1` header. Intended for sites you
+- Simulated bot requests send an `X-Geoctl-Test: 1` header. Intended for sites you
   own or have permission to test.
 - Private and loopback addresses are blocked unless you pass `--allow-private`.
 
@@ -103,6 +104,18 @@ number, so you can always see which signal moved:
 The CLI is fully capable, not a crippled demo. A hosted tier may sell only things that
 require a service: scheduled runs, persistent history, alerts, multi-site and team
 workspaces, managed keys. **A feature released in the OSS CLI is never moved to paid.**
+
+## License
+
+**AGPL-3.0-only.** It is a free, OSI-approved open source license.
+
+The practical effect: if you fork this and distribute it, or run your modified version as a
+service, you must offer your source under AGPL-3.0. You cannot take the free CLI, close it,
+and charge for it. That is the point of choosing it over MIT or Apache-2.0.
+
+It does not stop someone reimplementing the same ideas from scratch, or from using the name
+in their trademark sense — [register the name](docs/DECISIONS.md#adr-004-license-is-agpl-30-only)
+if that matters commercially. Reasoning in [ADR-004](docs/DECISIONS.md#adr-004-license-is-agpl-30-only).
 
 ## Won't do
 

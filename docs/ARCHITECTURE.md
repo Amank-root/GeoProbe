@@ -1,6 +1,6 @@
 # Architecture
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
 ## 1. Principles
 
@@ -52,7 +52,7 @@ flowchart LR
 ## 4. Module layout
 
 ```
-src/geoprobe/
+src/geoctl/
   __init__.py
   cli.py                # Typer app, command wiring only
   config.py             # flags < env < toml merge; Pydantic Settings
@@ -162,7 +162,7 @@ Holds the config, fetch results, page views, and a handle to the cache. Checks r
 - **Concurrency.** Default 4 concurrent requests, per-host delay, jittered. Configurable.
 - **Limits.** Per-request timeout, max redirects, max response bytes (default 5 MB), max pages.
 - **SSRF guard.** Resolve and validate IPs before connecting (and on every redirect); reject private, loopback, link-local, and metadata ranges unless `--allow-private`.
-- **Honest identification.** Simulated-bot requests add an `X-Geoprobe-Test: 1` header so site operators can recognize test traffic. The tool is intended for sites the user controls.
+- **Honest identification.** Simulated-bot requests add an `X-Geoctl-Test: 1` header so site operators can recognize test traffic. The tool is intended for sites the user controls.
 
 ## 7. Extraction design
 
@@ -190,9 +190,9 @@ See [EVALS](EVALS.md) for method. Architecture notes:
 
 ## 10. Configuration precedence
 
-`CLI flags` > `environment variables` > `geoprobe.toml` (project) > `~/.config/geoprobe/config.toml` (user) > defaults.
+`CLI flags` > `environment variables` > `geoctl.toml` (project) > `~/.config/geoctl/config.toml` (user) > defaults.
 
-Secrets (API keys) come from environment variables or the OS keyring, never from `geoprobe.toml` committed to a repo (the tool warns if it finds one).
+Secrets (API keys) come from environment variables or the OS keyring, never from `geoctl.toml` committed to a repo (the tool warns if it finds one).
 
 ## 11. Error handling
 
@@ -213,8 +213,8 @@ Secrets (API keys) come from environment variables or the OS keyring, never from
 
 ## 13. Packaging and release
 
-- `pyproject.toml` with extras: `geoprobe[render]` (Playwright), `geoprobe[all]`.
-- Entry point: `geoprobe`.
+- `pyproject.toml` with extras: `geoctl[render]` (Playwright), `geoctl[all]`.
+- Entry point: `geoctl`.
 - Release via tagged GitHub Actions workflow with PyPI trusted publishing.
 - Versioned `schema_version` in JSON output; breaking schema changes bump the major schema version and are noted in the changelog.
 

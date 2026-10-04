@@ -1,6 +1,6 @@
 # Roadmap
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
 Time estimates are rough, assume one developer part-time, and exist to size scope, not to promise dates. Each milestone has **exit criteria**: do not move on until they are met.
 
@@ -57,7 +57,7 @@ Goal: turn findings into starter artifacts and make the tool a CI citizen.
       absence is never penalized
 - [ ] `generate robots` with policy presets (allow all; allow search, block training; block all AI)
 - [ ] `generate jsonld` for Organization / WebSite / Article skeletons with required-field prompts
-- [ ] Official GitHub Action (`uses: OWNER/geoprobe-action@v1`) with `fail-under`, PR comment summary, artifact upload
+- [ ] Official GitHub Action (`uses: OWNER/geoctl-action@v1`) with `fail-under`, PR comment summary, artifact upload
 - [ ] SARIF or annotations output (optional) for PR surfaces
 - [ ] `--only` / `--skip` polish; baseline file to ignore known findings
 - [ ] Public changelog and contribution guide
@@ -72,7 +72,7 @@ Goal: the strongest differentiator. Findings become code changes.
 - [ ] Repo analyzer: detect framework (Next.js first), router type (app/pages), metadata API usage
 - [ ] LangGraph fix agent: plan → patch → self-check → re-run affected checks → PR description
 - [ ] Supported fixes (initial): JSON-LD in layout/pages, metadata exports, heading/semantic fixes where mechanical, server-render guidance with scaffolded changes, robots/sitemap route files
-- [ ] `geoprobe fix --repo . [--pr]` with dry-run diff by default
+- [ ] `geoctl fix --repo . [--pr]` with dry-run diff by default
 - [ ] Safety: never pushes without confirmation; patches limited to allow-listed file types; tests for each patch template
 - [ ] Before/after re-audit included in PR description
 
@@ -84,7 +84,7 @@ Goal: close the loop with citation-style measurement, reported separately from t
 
 - [ ] Query set definition (YAML) per site
 - [ ] Local snapshot runner against user-configured providers/search APIs, stored in SQLite
-- [ ] `geoprobe snapshots diff` for before/after comparison with repeated trials and significance caveats
+- [ ] `geoctl snapshots diff` for before/after comparison with repeated trials and significance caveats
 - [ ] Clear reporting that citation behavior is provider-dependent and noisy
 - [ ] Small public benchmark: pages with/without specific features vs measured outcomes, with methodology and raw data
 

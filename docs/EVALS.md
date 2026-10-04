@@ -1,6 +1,6 @@
 # Answerability Eval
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
 ## 1. What it measures
 
@@ -215,7 +215,7 @@ places.
 
 ## 6. Prompts (summary)
 
-Full templates live in `src/geoprobe/evals/prompts/` and are versioned. Design constraints:
+Full templates live in `src/geoctl/evals/prompts/` and are versioned. Design constraints:
 
 - **Generator:** produce N questions; each with a reference answer and verbatim source
   span from the ground truth; no questions that depend on information outside it.

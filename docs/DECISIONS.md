@@ -1,6 +1,6 @@
 # Decision Log (ADRs)
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
 Format: **Status** (Proposed / Accepted / Open / Superseded), **Context**, **Decision**, **Consequences**. Add new ADRs at the bottom; never rewrite history, supersede instead.
 
@@ -53,29 +53,76 @@ Format: **Status** (Proposed / Accepted / Open / Superseded), **Context**, **Dec
 
 ---
 
-## ADR-004: License
+## ADR-004: License is AGPL-3.0-only
 
-**Status:** Open
+**Status:** Accepted
 
-**Context.** The planned business model is open-core with a hosted tier selling recurring monitoring, alerts, and team features. A permissive license lets anyone host the code commercially; a strong copyleft license (AGPL) deters that but reduces adoption by some companies and contributors.
+**Context.** The project is open-core: the CLI is free and fully capable, and a hosted tier
+may later sell recurring monitoring, persistent history, alerts, and team features. The
+license has to serve two goals that pull against each other — maximise adoption of a
+developer tool that lives in other people's CI, and prevent someone from taking the free
+CLI, closing it, and charging for it.
+
+The earlier draft of this ADR leaned Apache-2.0, reasoning that adoption matters most early
+and that the hosted tier's value would be recurring infrastructure rather than the engine.
+Milestone 0 revised that: the requirement is specifically that a fork cannot be
+closed-source and sold, and Apache-2.0 and MIT both permit exactly that.
 
 **Options.**
 
-| Option | Pros | Cons |
-|---|---|---|
-| Apache-2.0 | Maximum adoption; patent grant; easy for CI/Action use | Competitors may host it |
-| MIT | Simplest, most familiar | No patent grant; same hosting risk |
-| AGPL-3.0 | Discourages closed hosted forks | Many companies avoid AGPL; can limit contributions and Action adoption |
-| Source-available (e.g. BSL/FSL) | Protects against hosted competitors | Not "open source" by OSI definition; may reduce community trust |
+| Option | Free software? | Forks must stay open? | Adoption cost |
+|---|---|---|---|
+| Apache-2.0 | Yes (OSI) | No | Lowest |
+| MIT | Yes (OSI) | No | Lowest |
+| **AGPL-3.0-only** | **Yes (OSI)** | **Yes** | Some companies avoid AGPL |
+| BSL / FSL (source-available) | No (not OSI) | Yes | Loses OSI status and community trust |
 
-**Leaning.** Apache-2.0 for the CLI, on the reasoning that the hosted tier's value is recurring infrastructure and history rather than the engine, and that adoption (especially CI usage) matters most early. This is **not final**; decide in Milestone 0 and record the reasoning.
+Note on a common misconception: AGPL-3.0 **is** a free software license, approved by the OSI
+and used by Redis, Grafana, and Firecrawl. Its §13 network clause adds an obligation to
+offer corresponding source to remote network users; it does not make the software
+proprietary. So the "only use a free license" constraint does not rule AGPL out — it rules
+out BSL/FSL.
 
-**Consequences (if Apache-2.0).**
-- Add a contributor policy (DCO or CLA decision; DCO is lighter).
-- The hosted tier must not rely on the engine being exclusive; differentiate on service features.
-- Trademark the name separately from the code license if the name matters commercially.
+**Decision.** License the CLI under **AGPL-3.0-only** (SPDX `AGPL-3.0-only`: the plain
+AGPL-3.0, without the GPLv3-or-later relicensing option). AGPL is the only widely used OSI
+license requiring a derivative work that is distributed or offered over a network to remain
+under the same terms. A fork that closes the source and charges for it is therefore a
+licence violation, not merely an ethical problem. That meets the requirement directly, and
+it keeps the project genuinely open source, which BSL/FSL would not.
 
----
+The `-only` suffix matters: it does not permit relicensing the project under GPLv3, which
+`AGPL-3.0-or-later` would. There is no reason to grant that here.
+
+**Consequences.**
+- **The stated goal is met for forks and hosted clones.** Any distributed or
+  network-served derivative must offer its source under AGPL-3.0. This is a real constraint,
+  enforced by copyright, and it is the strongest available protection short of patent or
+  trademark.
+- **It does not stop a competitor.** Someone may write an independent implementation of the
+  same ideas without licensing any of this code, and may brand it differently. Only the
+  *name* and *trademark* prevent that — which is why the next point is not optional.
+- **Trademark the name separately.** `geoctl` and the logo should be registered. The licence
+  grants rights in the code, not the name, so a fork must rename — which reduces consumer
+  confusion even though it cannot stop the underlying functionality.
+- **Adoption cost is real but acceptable.** Some companies avoid AGPL in CI. For an early
+  project whose differentiation is an opinionated methodology rather than a library others
+  link, this is a reasonable trade. Adoption is mitigated by the tool running as a
+  subprocess in CI rather than being imported as a dependency — unlike Firecrawl, where
+  AGPL is often the reason it gets chosen.
+- **No source-available fallback.** If AGPL blocks adoption, the honest move is to change
+  licence later under a new ADR, not to quietly relicense a fork. Relicensing your own code
+  is permitted; the point is to do it visibly.
+- **Contributors.** Adding a DCO or CLA remains open. Under AGPL, inbound contributions
+  default to the same licence; a DCO (`Signed-off-by`) keeps that explicit and is the
+  lighter process.
+- **Compatibility.** Consumers can combine this with GPLv3 work via AGPL §13's linking
+  clause. It is incompatible with MIT/Apache-licensed code in the same binary, a real
+  limitation for anyone embedding the library rather than shelling out to it.
+
+**Superseded reasoning.** The earlier Apache-2.0 leaning is withdrawn: it did not meet the
+no-closed-source-forks requirement, and the observation that the hosted tier's defensibility
+rests on service rather than the engine is exactly why the licence is the right tool for the
+*fork* case while the trademark covers the *brand* case.
 
 ## ADR-005: Telemetry is opt-in, allow-list only
 
@@ -132,7 +179,7 @@ Format: **Status** (Proposed / Accepted / Open / Superseded), **Context**, **Dec
 
 **Context.** Fetching with AI-bot user-agents is necessary to detect user-agent-based blocking, but could be misused against third-party sites or look like evasion.
 
-**Decision.** Simulated-bot requests include an `X-Geoprobe-Test: 1` header; default concurrency is low with per-host delay; documentation states the tool is intended for sites the user owns or has permission to test; the tool does not rotate IPs, evade challenges, or solve CAPTCHAs.
+**Decision.** Simulated-bot requests include an `X-Geoctl-Test: 1` header; default concurrency is low with per-host delay; documentation states the tool is intended for sites the user owns or has permission to test; the tool does not rotate IPs, evade challenges, or solve CAPTCHAs.
 
 **Consequences.**
 - Some WAFs may treat spoofed UAs as hostile; the check reports what happens rather than working around it.
@@ -166,7 +213,7 @@ signals this project originally planned to score are also not specific to AI cra
 all: heading hierarchy, meta descriptions, Open Graph, HTTPS/HSTS, and publish dates are
 reported by Lighthouse, axe-core, and every commercial checker.
 
-Scoring those signals would put `geoprobe` in direct competition with better-resourced
+Scoring those signals would put `geoctl` in direct competition with better-resourced
 tools on their strongest ground, and would produce a number that looks authoritative while
 encoding opinions the project cannot justify with evidence. It would also consume the
 engineering effort that the differentiating feature needs.
