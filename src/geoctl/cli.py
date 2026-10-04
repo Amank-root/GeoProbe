@@ -17,6 +17,7 @@ import typer
 from rich.console import Console
 
 from . import __version__
+from . import generate as generate_mod
 from . import report as report_mod
 from . import telemetry as telemetry_mod
 from .audit import (
@@ -37,6 +38,7 @@ from .evals import load_facts
 from .evals.answer import ANSWERER_MAX_TOKENS
 from .evals.runner import decide_threshold
 from .fetch.ssrf import BlockedTarget as SSRFBlocked
+from .generate import GeneratorError
 from .llm import providers
 from .llm.client import CostLimitExceeded, Endpoint, ProviderError, UnknownPricing
 
@@ -422,6 +424,210 @@ def _maybe_eval(
         use_cache=use_cache,
     )
     return outcome.result, None, notes
+
+
+# ------------------------------------------------------------------- generate
+
+generate_app = typer.Typer(
+    help="Generate starter files from an audit (proposals, never applied).",
+    no_args_is_help=True,
+)
+app.add_typer(generate_app, name="generate")
+
+
+def _generation_config(*, max_pages: int, allow_private: bool, timeout: float | None) -> Any:
+    """Config for a generate run: crawl only, never eval."""
+    try:
+        return apply_overrides(
+            load_config(_config_file()),
+            {
+                "audit": {"max_pages": max_pages},
+                "fetch": {"allow_private": allow_private or None, "timeout": timeout},
+            },
+        )
+    except ConfigError as exc:
+        _err(str(exc))
+        raise typer.Exit(EXIT_USAGE) from exc
+
+
+def _crawl_for_generation(config: Any, url: str, *, no_cache: bool) -> Any:
+    """Crawl the site, mapping every failure to its documented exit code.
+
+    `generate` fetches, so the SSRF guard and the reachability contract apply
+    exactly as they do to `audit`. A loopback target without --allow-private is
+    a refusal, not a failed fetch.
+    """
+    cache = Cache(config.cache_dir)
+    try:
+        return asyncio.run(audit(config, url, cache=cache, use_cache=not no_cache))
+    except InvalidUrl as exc:
+        _err(str(exc))
+        raise typer.Exit(EXIT_USAGE) from exc
+    except (SSRFBlocked, BlockedTarget) as exc:
+        # A safety refusal is not a failed fetch. It gets its own exit code (6),
+        # the same as `audit`, and it must never degrade into a warning while the
+        # run continues — CLI_SPEC §5.
+        _err(str(exc))
+        raise typer.Exit(EXIT_BLOCKED) from exc
+    except Unreachable as exc:
+        _err(str(exc))
+        raise typer.Exit(EXIT_UNREACHABLE) from exc
+    finally:
+        cache.close()
+
+
+def _write_generated(result: Any, output: str | None, *, force: bool) -> None:
+    """Write a generated file, refusing to clobber without --force.
+
+    Every generator here produces a proposal. Overwriting a real robots.txt or an
+    llms.txt a user hand-edited would be data loss, so it needs an explicit
+    --force rather than a prompt (CLI_SPEC §2.6).
+    """
+    target = Path(output) if output else Path(result.path.lstrip("/"))
+    if target.exists() and not force:
+        _err(f"{target} already exists. Pass --force to overwrite it.")
+        raise typer.Exit(EXIT_USAGE)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(result.content, encoding="utf-8")
+
+    emit(f"wrote {target} ({result.byte_count} bytes)")
+    for note in result.notes:
+        emit(f"  note: {note}")
+    emit("")
+    emit(
+        "This is a proposal derived from what the audit observed. Review it before "
+        "publishing: nothing here is verified to improve how your site is cited."
+    )
+    raise typer.Exit(EXIT_OK)
+
+
+def _start_page_facts(state: Any) -> tuple[str, str]:
+    """(title, description) from the start page, for the generators to fill in."""
+    ctx = state.context
+    first = ctx.start_bundle if ctx else None
+    if first is None:
+        return "", ""
+    title = first.title or ""
+    description = ""
+    if first.structure is not None:
+        description = first.structure.meta.description or ""
+    return title, description
+
+
+def _emit_generator_error(exc: Exception) -> None:  # pragma: no cover - trivial
+    _err(str(exc))
+
+
+@generate_app.command("llms-txt")
+def generate_llms_txt_command(
+    url: str = typer.Argument(..., help="The site to crawl"),
+    output: str = typer.Option(None, "--output", "-o", help="Where to write the file"),
+    max_pages: int = typer.Option(20, help="Pages to crawl (default 20)"),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite an existing file"),
+    title: str = typer.Option(None, help="Site name (default: the home page title)"),
+    description: str = typer.Option(None, help="One-line summary"),
+    allow_private: bool = typer.Option(False, "--allow-private", help="Allow loopback targets"),
+    timeout: float = typer.Option(None, help="Per-request timeout in seconds"),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Ignore cache reads"),
+) -> None:
+    """Generate an llms.txt from the pages the crawl actually found."""
+    config = _generation_config(max_pages=max_pages, allow_private=allow_private, timeout=timeout)
+    state = _crawl_for_generation(config, url, no_cache=no_cache)
+
+    entries = (
+        generate_mod.page_entries(state.context.pages, state.start_url) if state.context else []
+    )
+    default_title, default_description = _start_page_facts(state)
+    try:
+        result = generate_mod.generate_llms_txt(
+            entries,
+            site_url=state.start_url,
+            title=title or default_title,
+            description=description or default_description,
+        )
+    except GeneratorError as exc:
+        _emit_generator_error(exc)
+        raise typer.Exit(EXIT_USAGE) from exc
+    _write_generated(result, output, force=force)
+
+
+@generate_app.command("robots")
+def generate_robots_command(
+    url: str = typer.Argument(..., help="The site to crawl"),
+    output: str = typer.Option(None, "--output", "-o", help="Where to write the file"),
+    policy: str = typer.Option(
+        "allow-search-block-training",
+        "--policy",
+        help="allow-all | allow-search-block-training | block-all-ai",
+    ),
+    max_pages: int = typer.Option(5, help="Pages to crawl (default 5)"),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite an existing file"),
+    crawl_delay: int = typer.Option(None, help="Add a Crawl-delay directive"),
+    allow_private: bool = typer.Option(False, "--allow-private", help="Allow loopback targets"),
+    timeout: float = typer.Option(None, help="Per-request timeout in seconds"),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Ignore cache reads"),
+) -> None:
+    """Generate a robots.txt from a policy preset, preserving the current one."""
+    if policy not in generate_mod.ROBOT_POLICIES:
+        _err(f"--policy must be one of {', '.join(generate_mod.ROBOT_POLICIES)}")
+        raise typer.Exit(EXIT_USAGE)
+
+    config = _generation_config(max_pages=max_pages, allow_private=allow_private, timeout=timeout)
+    state = _crawl_for_generation(config, url, no_cache=no_cache)
+
+    robots = state.context.robots if state.context else None
+    sitemaps = list(robots.sitemaps) if robots else []
+    # Preserve whatever is already published, commented out, so the diff the user
+    # reviews shows both versions rather than only ours.
+    existing = getattr(robots, "body", "") or ""
+    try:
+        result = generate_mod.generate_robots(
+            site_url=state.start_url,
+            policy=policy,
+            sitemaps=sitemaps,
+            existing=existing,
+            crawl_delay=crawl_delay,
+        )
+    except GeneratorError as exc:
+        _emit_generator_error(exc)
+        raise typer.Exit(EXIT_USAGE) from exc
+    _write_generated(result, output, force=force)
+
+
+@generate_app.command("jsonld")
+def generate_jsonld_command(
+    url: str = typer.Argument(..., help="The site to crawl"),
+    type: str = typer.Option(
+        "Organization", "--type", "-t", help="Organization | WebSite | Article"
+    ),
+    output: str = typer.Option(None, "--output", "-o", help="Where to write the file"),
+    max_pages: int = typer.Option(1, help="Pages to crawl (default 1)"),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite an existing file"),
+    description: str = typer.Option(None, help="One-line description"),
+    allow_private: bool = typer.Option(False, "--allow-private", help="Allow loopback targets"),
+    timeout: float = typer.Option(None, help="Per-request timeout in seconds"),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Ignore cache reads"),
+) -> None:
+    """Generate a JSON-LD skeleton with the unfillable fields marked."""
+    if type not in generate_mod.JSONLD_TYPES:
+        _err(f"--type must be one of {', '.join(generate_mod.JSONLD_TYPES)}")
+        raise typer.Exit(EXIT_USAGE)
+
+    config = _generation_config(max_pages=max_pages, allow_private=allow_private, timeout=timeout)
+    state = _crawl_for_generation(config, url, no_cache=no_cache)
+
+    default_title, default_description = _start_page_facts(state)
+    try:
+        result = generate_mod.generate_jsonld(
+            type,
+            site_url=state.start_url,
+            title=default_title,
+            description=description or default_description,
+        )
+    except GeneratorError as exc:
+        _emit_generator_error(exc)
+        raise typer.Exit(EXIT_USAGE) from exc
+    _write_generated(result, output, force=force)
 
 
 @app.command()

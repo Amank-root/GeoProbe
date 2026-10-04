@@ -545,3 +545,85 @@ rule — the presence of a key is the signal, not the TTY.
 - `--fail-under-eval` will not gate CI on a low-confidence run (crawler-only ground truth,
   or a CI wider than `--fail-under-eval-margin`); it warns and exits 0 unless
   `--strict-eval` is passed. See EVALS §4.2.
+
+---
+
+## ADR-017: The provider key selects the model; a reasoning model is not a chat model
+
+**Status:** Accepted
+
+**Context.** ADR-012 made the eval run whenever a key is present. The model was then
+hardcoded to `openai/gpt-4o-mini`, so the promise held only for OpenAI users: any
+other provider's key produced an authentication failure from the headline feature.
+Issue #43 had made OpenAI-compatible endpoints reachable, but nothing used that
+work automatically.
+
+While verifying the fix against NVIDIA's hosted endpoint with real keys, two further
+failures appeared, both of which would have been reported as *the website's* problem:
+
+- Reasoning models (`nvidia/nemotron-3.5-lightning-30b-a3b`, `z-ai/glm-5.3-flash`) emit a
+  chain of thought and count it against `max_tokens`. The answerer's 300-token budget was
+  consumed entirely by thinking; the response came back `finish_reason="length"` with the
+  reasoning *trace* as its content, and that trace was parsed as the answer. Measured:
+  300 tokens truncated, 800 completed.
+- Question generation set no limit at all. On a real 17.7k-character page the model spent
+  the whole budget reasoning and returned truncated JSON, so the user was told "no
+  questions could be produced" about a page that was entirely fine.
+
+**Decision.**
+
+1. **A key is sufficient.** `src/geoctl/llm/providers.py` maps each key variable to a model
+   that key can call, plus the base URL where the host needs one. Model, embedding model,
+   and endpoint all resolve from the same detected provider, so they cannot disagree.
+2. **`finish_reason` is part of the response contract, not a diagnostic.** Truncation is
+   recorded as an answerer *error*, which the runner already counts separately, rather than
+   as an abstention. A missing answer and a missing token budget are different findings, and
+   only one of them is the site's fault.
+3. **Token budgets are sized to the work, and measured rather than guessed.** Generation
+   scales with page length because a reasoning model reasons over every character it is
+   given; it is capped so one call cannot spend without bound. `CALL_TIMEOUT` moved 60s →
+   300s, because generation over a long page legitimately takes ~31s.
+
+**Consequences.**
+
+- A budget that is too small is now an error the report attributes to the model, not a
+  zero-score finding against the user's content. Scores from a reasoning model and a plain
+  chat model are not comparable for the same reason (EVALS §7.5), and the report records
+  which model ran.
+- Detection cannot drift from resolution: `config.py`, `doctor`, and the eval read one
+  registry. The test suite strips provider keys via that same registry, so adding a
+  provider cannot silently stop the tests being hermetic.
+
+---
+
+## ADR-018: Generated artifacts are proposals, and never guess what the crawl cannot know
+
+**Status:** Accepted
+
+**Context.** ADR-010 keeps the check catalog narrow and CHECKS §7 records that no major AI
+platform documents fetching `llms.txt`. A generator therefore cannot be justified by
+"this will improve your score", and the tempting failure mode is to fill every field so the
+output looks complete.
+
+**Decision.** Every `geoctl generate` output is derived strictly from what the crawl
+observed, and is written as a proposal that states its own limits.
+
+- `llms.txt` lists only pages that were fetched and had extractable text. An untitled page
+  is listed by URL rather than with a blank label.
+- `robots.txt` is a policy preset plus the site's existing `Sitemap:` lines. An existing
+  `robots.txt` is **preserved verbatim in a comment**, never merged — silently rewriting
+  someone's rules on a guess could unblock a path they had locked down.
+- `jsonld` fills only what the crawl observed (name, url, headline, description). Fields a
+  crawl cannot know — `logo`, `sameAs` — are listed under `_geoctl_todo` with a hint rather
+  than guessed, because a wrong logo URL is worse than a missing one.
+- Nothing overwrites an existing file without `--force`.
+- `block-all-ai` states plainly that it also blocks search and answer-engine crawlers, and
+  points at the preset a user probably wanted instead.
+
+**Consequences.**
+
+- `--max-cost` on an unpriced model is a refusal, not a warning, and a *free* provider is
+  reported as an unknown price rather than `$0.00`: a zero would read as a known price and
+  silently defeat the guard.
+- Generated artifacts are never scored, and the CLI repeats the caveat on stdout at the
+  moment of generation rather than only in the docs.

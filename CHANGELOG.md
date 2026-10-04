@@ -12,6 +12,15 @@ breaking changes bump the major and are called out here
 
 ### Added
 
+- **`geoctl generate llms-txt | robots | jsonld`** (Milestone 2). Each writes a proposal
+  derived only from what the crawl observed, refuses to overwrite an existing file without
+  `--force`, and states its own limits at the point of generation. See
+  [ADR-018](docs/DECISIONS.md).
+- **The provider key now selects the model.** When `--model` is omitted, geoctl detects which
+  key is set and picks a model that key can call, including the base URL for
+  OpenAI-compatible hosts LiteLLM cannot route on its own. The embedding model follows the
+  same provider instead of defaulting to OpenAI's, so retrieval no longer silently degrades
+  to lexical scoring for non-OpenAI users. A suffixed key such as `GEMINI_API_KEY_1` counts.
 - **Any OpenAI-compatible endpoint** for the eval: `--base-url`, `--api-key-env`. Groq,
   NVIDIA NIM, Together, OpenRouter, vLLM and Ollama are now reachable. Groq and Gemini
   additionally work as first-class LiteLLM providers with no `base_url` needed.
@@ -22,6 +31,25 @@ breaking changes bump the major and are called out here
 
 ### Fixed
 
+- **The eval only worked with an OpenAI key.** `--eval auto` fired on any provider key but
+  then used a hardcoded `openai/gpt-4o-mini`, so every other provider got an authentication
+  failure from the headline feature. `doctor --test-keys` had the same hardcoding and
+  reported working NVIDIA and Groq keys as broken. A suffixed key (`GEMINI_API_KEY_1`) was
+  not counted as a key at all, and `--base-url` without `--api-key-env` sent no key.
+  [#45](https://github.com/Amank-root/GeoProbe/issues/45)
+- **Reasoning models were scored on their reasoning trace.** A reasoning model counts its
+  chain of thought against `max_tokens`; the answerer's 300-token budget was spent entirely
+  thinking, and the resulting trace was parsed as the answer, so a correctly answered
+  question scored `NOT_FOUND` / 0. Budgets are now sized to the work and `finish_reason` is
+  part of the response contract — a truncated response is recorded as an answerer *error*, so
+  it no longer inflates the hallucination rate or blames the website. The judge had the same
+  defect at 200 tokens, and question generation had no limit at all, which made a long page
+  report "no questions could be produced". [#46](https://github.com/Amank-root/GeoProbe/issues/46)
+- **A skipped eval reported "internal error … please report" and exited 70.**
+  `EvalSkipped` was never caught, so every skip told users to file a bug against their own
+  website. It is now a note, and exit 0.
+- **`generate` returned exit 1 for an SSRF refusal**, which reads as a threshold failure
+  rather than a safety refusal. It now exits 6, as `audit` does.
 - **An unknown model price reported `$0.00`.** LiteLLM's cost table is missing many
   current models — including `openai/gpt-4o-mini`, our own default, and
   `openai/text-embedding-3-small`, our default embedding model — so cost estimation

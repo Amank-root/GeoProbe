@@ -256,6 +256,12 @@ Full templates live in `src/geoctl/evals/prompts/` and are versioned. Design con
 7. Retrieval-based numbers are sensitive to chunk size, top-k, and the embedding model.
    Treat them as comparable only within the same `eval_version` and retrieval config,
    which the report records.
+8. A **reasoning model** spends part of its output budget on a chain of thought before
+   answering. If a response is cut off before the answer (`finish_reason: "length"`), that
+   is recorded as an *answerer error* and excluded from the abstention and hallucination
+   counts, rather than being scored as a miss — otherwise the model's token budget would
+   be reported as a problem with your content. Reasoning models are also slower and
+   pricier per run than plain chat models, which matters for cost and for CI runtime.
 
 ## 8. Validating the eval itself
 

@@ -12,7 +12,12 @@ Goal: remove the biggest unknowns before writing product code.
 - [x] Decide license (ADR-004) — **done**: AGPL-3.0-only ([#5](https://github.com/Amank-root/GeoProbe/issues/5))
 - [x] Spike: trafilatura output quality on varied sites (docs, blog, SPA, e-commerce) — **done**: good on server-rendered content; the real failure mode is client-side rendering, where `favor_precision` vs `favor_recall` differ by **33x** on the same HTML. Extraction is therefore adaptive, not a fixed setting (ADR-016)
 - [x] Spike: robots.txt parser choice — **done**: Protego; stdlib fails wildcards, `$`, and `Allow` precedence (ADR-013)
-- [ ] Spike: LiteLLM cost/usage reporting accuracy across two providers — **blocked, deferred to Milestone 1**: needs two funded provider accounts. A dry run cannot settle it, since `--dry-run` makes no API call and so tests the estimator rather than post-call accounting. Interim decision in ADR-015: cost is always reported as an estimate, never as billing.
+- [ ] Spike: LiteLLM cost/usage reporting accuracy across two providers — **still blocked**, and
+      the reason is now sharper. It needs a provider that *bills*: NVIDIA's hosted endpoint is
+      free, so a run there produces a `0.00` estimate against which no invoice can be compared,
+      and that figure is deliberately reported as **unknown** rather than as free (ADR-018). One
+      funded, metered provider is still required. Interim decision in ADR-015: cost is always
+      reported as an estimate, never as billing
 - [x] Spike: question generation quality — **done**: ground-truth tiers and their independence ordering settled in ADR-014
 - [x] Draft fixture-site list for calibration (30–50 sites) — see `docs/FIXTURES.md`
 
@@ -71,17 +76,23 @@ need funded accounts, as ADR-015 records).
 
 Goal: turn findings into starter artifacts and make the tool a CI citizen.
 
-- [ ] `generate llms-txt` (from sitemap and extracted titles). Offered as a convenience for
+- [x] `generate llms-txt` (from sitemap and extracted titles). Offered as a convenience for
       users who want the file; per ADR-010 and CHECKS §7 it stays informational and its
-      absence is never penalized
-- [ ] `generate robots` with policy presets (allow all; allow search, block training; block all AI)
-- [ ] `generate jsonld` for Organization / WebSite / Article skeletons with required-field prompts
+      absence is never penalized. See [ADR-018](DECISIONS.md)
+- [x] `generate robots` with policy presets (allow all; allow search, block training; block all AI).
+      An existing `robots.txt` is preserved verbatim in a comment, never merged
+- [x] `generate jsonld` for Organization / WebSite / Article skeletons with required-field
+      prompts. Unfillable fields are listed under `_geoctl_todo` rather than guessed
 - [ ] Official GitHub Action (`uses: OWNER/geoctl-action@v1`) with `fail-under`, PR comment summary, artifact upload
 - [ ] SARIF or annotations output (optional) for PR surfaces
 - [ ] `--only` / `--skip` polish; baseline file to ignore known findings
-- [ ] Public changelog and contribution guide
+- [x] Public changelog and contribution guide
+- [ ] Generated files validate against the tool's own checks. **Partly done**: the `jsonld`
+      skeleton is asserted to be parseable JSON and the `llms.txt` output is asserted to
+      satisfy DIS-003's shape criteria (H1, summary, link sections). What is *not* done is
+      the end-to-end demonstration below
 
-**Exit:** a sample repo uses the Action in CI; generated files validate with the tool's own checks.
+**Exit:** a sample repo uses the Action in CI; generated files validate with the tool's own checks. **Not met** — the generators validate in isolation, but the GitHub Action does not exist yet, so no sample repo runs them in CI. The exit criterion is restated here rather than treated as satisfied by the passing unit tests.
 
 ## Milestone 3: v0.3 "Fix by PR" (≈ 6–8 weeks)
 
