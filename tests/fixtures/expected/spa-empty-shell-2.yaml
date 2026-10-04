@@ -1,0 +1,24 @@
+checks:
+  ACC-001: pass
+  ACC-002: pass
+  ACC-003: pass
+  DIS-001: pass
+  DIS-002: pass
+  DIS-003: pass
+  REN-001: fail
+  REN-002: fail
+  SD-001: fail
+  SD-002: fail
+  SD-003: fail
+  SITE-001: fail
+  STR-001: pass
+  STR-002: pass
+  STR-003: pass
+  STR-004: fail
+  STR-005: fail
+  STR-006: pass
+  TRU-001: fail
+  TRU-002: fail
+covers: 'row 2: a second SPA, with the content in a differently-shaped payload'
+fixture: spa-empty-shell-2
+known_good: false

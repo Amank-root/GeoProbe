@@ -1,0 +1,24 @@
+checks:
+  ACC-001: pass
+  ACC-002: pass
+  ACC-003: pass
+  DIS-001: pass
+  DIS-002: pass
+  DIS-003: pass
+  REN-001: warn
+  REN-002: warn
+  SD-001: fail
+  SD-002: fail
+  SD-003: fail
+  SITE-001: fail
+  STR-001: pass
+  STR-002: fail
+  STR-003: fail
+  STR-004: warn
+  STR-005: fail
+  STR-006: warn
+  TRU-001: fail
+  TRU-002: fail
+covers: 'row 18: h2 to h4 and two H1s'
+fixture: headings-skipped-level
+known_good: false

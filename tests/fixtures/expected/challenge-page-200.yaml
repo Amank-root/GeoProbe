@@ -1,0 +1,24 @@
+checks:
+  ACC-001: pass
+  ACC-002: fail
+  ACC-003: warn
+  DIS-001: fail
+  DIS-002: pass
+  DIS-003: fail
+  REN-001: pass
+  REN-002: pass
+  SD-001: pass
+  SD-002: warn
+  SD-003: pass
+  SITE-001: fail
+  STR-001: pass
+  STR-002: pass
+  STR-003: pass
+  STR-004: pass
+  STR-005: pass
+  STR-006: pass
+  TRU-001: warn
+  TRU-002: pass
+covers: 'row 7: ACC-003 must not read a 200 challenge as success'
+fixture: challenge-page-200
+known_good: false
