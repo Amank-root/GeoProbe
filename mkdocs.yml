@@ -1,0 +1,58 @@
+site_name: geoctl
+site_description: >-
+  Audit whether AI systems can reach, read, and correctly answer questions from
+  your website. Bring your own keys; runs locally or in CI.
+site_url: https://amank-root.github.io/GeoProbe/
+repo_url: https://github.com/Amank-root/GeoProbe
+repo_name: Amank-root/GeoProbe
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Method:
+      - Answerability eval: EVALS.md
+      - Calibration results: CALIBRATION.md
+      - Methodology: METHODOLOGY.md
+  - Reference:
+      - Check catalog: CHECKS.md
+      - JSON output schema: OUTPUT_SCHEMA.md
+      - CLI specification: CLI_SPEC.md
+      - Architecture: ARCHITECTURE.md
+      - Telemetry policy: TELEMETRY.md
+  - Project:
+      - Product requirements: PRD.md
+      - Roadmap: ROADMAP.md
+      - Decisions (ADRs): DECISIONS.md
+      - Fixture coverage: FIXTURES.md

@@ -24,29 +24,48 @@ Goal: a useful, honest audit that works with no API key, plus an optional eval.
 
 **Deliverables**
 
-- [ ] Project skeleton: `uv`, `pyproject.toml`, ruff, pyright, pytest, pre-commit, CI
-- [ ] Fetch layer: httpx client, SSRF guard, limits, bot registry, parity comparison
-- [ ] robots.txt + sitemap parsing
-- [ ] Extraction: content, structure, structured data
-- [ ] All checks in [CHECKS](CHECKS.md) with fixtures and tests
-- [ ] Scoring and reporters (terminal, JSON, Markdown)
-- [ ] JSON Schema generated from models; schema validation in CI
-- [ ] Config system (flags, env, toml) and `init`, `cache`, `doctor`
-- [ ] Eval: question generation, answerer, judge, trials, cache, `--dry-run`, `--max-cost`
-- [ ] Telemetry module (opt-in) and `telemetry` commands
-- [ ] README with honest limitations, quickstart, and open-core boundary statement
-- [ ] Docs site (mkdocs) with methodology page
-- [ ] PyPI release via trusted publishing
+- [x] Project skeleton: `uv`, `pyproject.toml`, ruff, pyright, pytest, pre-commit, CI
+- [x] Fetch layer: httpx client, SSRF guard, limits, bot registry, parity comparison
+- [x] robots.txt + sitemap parsing
+- [x] Extraction: content, structure, structured data
+- [x] All checks in [CHECKS](CHECKS.md) with fixtures and tests
+- [x] Scoring and reporters (terminal, JSON, Markdown)
+- [x] JSON Schema generated from models; schema validation in CI
+- [x] Config system (flags, env, toml) and `init`, `cache`, `doctor`
+- [x] Eval: question generation, answerer, judge, trials, cache, `--dry-run`, `--max-cost`
+- [x] Telemetry module (opt-in) and `telemetry` commands
+- [x] README with honest limitations, quickstart, and open-core boundary statement
+- [x] Docs site (mkdocs) with methodology page
+- [ ] PyPI release via trusted publishing — **blocked**: requires the `pypi`
+      environment and trusted publisher to be configured on the repository. The
+      release workflow exists and is gated on a `v*` tag.
 
 **Exit criteria**
 
-- A new user gets a report within 2 minutes of install with no key.
-- Calibration run complete; false-positive rate < 5% on known-good fixture sites.
-- Eval CI on the answerability mean is ≤ ±10 points on fixture sites at the default
-  `--questions 50`, `--trials 3`. This is a sampling-error target, not a per-trial
-  standard deviation; the two are distinct quantities ([EVALS §4.2](EVALS.md#42-resolution-why-the-default-is-50-questions-not-10)).
-- No network or paid API use in CI.
-- Telemetry allow-list test passes.
+- [x] A new user gets a report within 2 minutes of install with no key. Measured
+      at ~2 s for the deterministic audit against `example.com`; the install path
+      itself is not yet published to PyPI, so the "2 minutes from install" figure
+      is not yet demonstrated end to end.
+- [x] Calibration run complete; false-positive rate < 5% on known-good fixture
+      sites. **Measured 0.00%** across 38 fixtures, 16 known-good (42%, above the
+      40% floor). See [CALIBRATION](CALIBRATION.md) — which also records what that
+      run does *not* establish, since the expectations were recorded from actual
+      runs and need human review against CHECKS.
+- [ ] Eval CI on the answerability mean is ≤ ±10 points on fixture sites at the
+      default `--questions 50`, `--trials 3`. **Not met, and not currently
+      reachable.** The true 95% half-width at 50 questions is about **±14
+      points**; the previous draft's table put 1-SE figures under a "95% CI"
+      heading and so understated it 2×. Reaching ±10 needs ~100 questions per
+      page ([EVALS §4.2](EVALS.md#42-resolution-why-the-default-is-50-questions-not-10)).
+      The target is restated here rather than quietly dropped. `--fail-under-eval`
+      therefore defaults to a ±15 margin and declines to gate on a wider interval.
+- [x] No network or paid API use in CI. Enforced by construction: the eval uses
+      recorded cassettes, and the fixture server binds localhost.
+- [x] Telemetry allow-list test passes.
+
+**Deferred to Milestone 2:** judge-accuracy measurement on ~100 hand-labelled
+answers, and eval stability measured against a real provider (EVALS §8 gates that
+need funded accounts, as ADR-015 records).
 
 ## Milestone 2: v0.2 "Generate + CI" (≈ 3–4 weeks)
 
