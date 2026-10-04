@@ -78,7 +78,7 @@ Eval flags:
 | `--facts PATH` | none | Facts file used as ground truth (YAML). Strongest signal — prefer it |
 | `--dry-run` | off | Print estimated tokens and cost; make no LLM calls |
 | `--max-cost USD` | none | Abort before exceeding this estimated cost |
-| `--fail-under-eval-margin N` | 10 | Do not fail the build when the eval's 95% CI is wider than this |
+| `--fail-under-eval-margin N` | 15 | Do not fail the build when the eval's 95% CI half-width exceeds this (points) |
 | `--strict-eval` | off | Fail on a threshold even when the CI is too wide to justify it |
 
 ### 2.2 `geoctl init` (v0.1)

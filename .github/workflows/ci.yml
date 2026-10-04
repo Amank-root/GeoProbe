@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --locked --group dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Pyright
+        run: uv run pyright
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --locked --group dev
+
+      # No network and no API keys: the suite must pass on an empty environment,
+      # which is the constraint CONTRIBUTING.md and ROADMAP M1 set.
+      - name: Test
+        run: uv run pytest
+        env:
+          GEOCTL_TELEMETRY: "0"
+          DO_NOT_TRACK: "1"
+          NO_COLOR: "1"
+
+      - name: Golden report validates against the published schema
+        run: uv run geoctl schema --output geoctl.schema.json && uv run python tests/validate_schema.py
+
+  schema-drift:
+    name: schema up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Install
+        run: uv sync --locked --group dev
+
+      - name: Regenerate and diff
+        run: |
+          uv run geoctl schema --output /tmp/geoctl.schema.json
+          diff -u geoctl.schema.json /tmp/geoctl.schema.json
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Build wheel and sdist
+        run: uv build
+
+      - name: Smoke test the built wheel
+        run: |
+          uv tool run --from dist/geoctl-0.1.0-py3-none-any.whl geoctl --version
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Install
+        run: uv sync --locked --extra docs
+
+      - name: Build docs site
+        run: uv run mkdocs build --strict
+
+  release:
+    name: release to PyPI
+    needs: [quality, test, schema-drift, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Build
+        run: uv build
+
+      - name: Publish (trusted publishing, no stored credentials)
+        run: uv publish
