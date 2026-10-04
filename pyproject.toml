@@ -109,6 +109,10 @@ minversion = "8.0"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-q --strict-markers"
+# The repo root must be importable so tests can reach `scripts.calibrate`.
+# Without it, `from scripts.calibrate import ...` depends on the invocation
+# directory and breaks in CI.
+pythonpath = ["."]
 filterwarnings = [
     "ignore::DeprecationWarning:litellm.*",
 ]
@@ -117,7 +121,7 @@ filterwarnings = [
 include = ["src"]
 pythonVersion = "3.10"
 typeCheckingMode = "standard"
+# Missing-import errors stay ON. An earlier blanket ignoreMissingImports hid
+# them, and that is exactly how a Python 3.10-incompatible `datetime.UTC` import
+# reached a branch that claims `requires-python = ">=3.10"`.
 reportMissingImports = true
-# Optional extras (playwright) and heavyweight third-party stubs are not installed
-# in every environment; a missing import must not fail the type check.
-reportAttributeAccessIssue = false

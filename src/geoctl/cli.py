@@ -34,6 +34,7 @@ from .checks import UnknownCheck
 from .config import ConfigError, apply_overrides, has_provider_key, load_config
 from .evals import engine as eval_engine
 from .evals import load_facts
+from .evals.runner import decide_threshold
 from .fetch.ssrf import BlockedTarget as SSRFBlocked
 from .llm.client import CostLimitExceeded, ProviderError
 
@@ -298,7 +299,7 @@ def _audit_command(
         )
         raise typer.Exit(EXIT_THRESHOLD)
     if config.eval.fail_under_eval is not None and eval_result is not None:
-        should_fail, note = eval_engine.decide_threshold(
+        should_fail, note = decide_threshold(
             eval_result,
             fail_under=config.eval.fail_under_eval,
             margin=config.eval.fail_under_eval_margin,
