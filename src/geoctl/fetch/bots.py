@@ -23,8 +23,16 @@ class Bot:
 
 # The `browser` lens is not an AI bot; it is the baseline every bot is compared
 # against in ACC-002.
+#
+# It deliberately does NOT claim a specific, fingerprintable browser build. Bot
+# protection maintains UA-reputation lists keyed on exact strings, and a baseline
+# that spoofs one particular build is the most detectable request a crawler can
+# make. When such a list refuses the baseline, ACC-002 reports that AI bots are
+# blocked when they are being served normally — inverting the finding the check
+# exists to produce. See issue #40, where a Chrome 125 string was refused while
+# every other user-agent, including Chrome 120 and 124, was served.
 BROWSER_UA = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
 

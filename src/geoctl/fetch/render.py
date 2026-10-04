@@ -48,12 +48,12 @@ def render_urls(urls: list[str], timeout_ms: int = 20_000) -> list[RenderResult]
         with sync_playwright() as pw:
             browser = pw.chromium.launch(args=["--no-sandbox"])
             try:
-                context = browser.new_context(
-                    user_agent=(
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-                        "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-                    )
-                )
+                # Same non-fingerprinted UA as the browser baseline, so a
+                # no-JS-versus-rendered comparison is not skewed by one side
+                # being refused for its user-agent alone (issue #40).
+                from .bots import BROWSER_UA
+
+                context = browser.new_context(user_agent=BROWSER_UA)
                 for url in urls:
                     page = context.new_page()
                     try:
