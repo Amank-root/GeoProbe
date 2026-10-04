@@ -12,6 +12,8 @@ from typing import Any, Literal
 import tomllib
 from pydantic import BaseModel, Field, ValidationError
 
+from .llm import providers
+
 CONFIG_ENV = "GEOCTL_CONFIG"
 DEFAULT_USER_CONFIG = Path.home() / ".config" / "geoctl" / "config.toml"
 PROJECT_CONFIG_NAME = "geoctl.toml"
@@ -118,20 +120,9 @@ _KEY_PATTERNS = (
 )
 
 # Environment variables that supply provider keys. Read for presence only.
-PROVIDER_KEY_VARS = (
-    "GROQ_API_KEY",
-    "NVIDIA_API_KEY",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "GEMINI_API_KEY",
-    "GOOGLE_API_KEY",
-    "MISTRAL_API_KEY",
-    "GROQ_API_KEY",
-    "TOGETHERAI_API_KEY",
-    "OPENROUTER_API_KEY",
-    "DEEPSEEK_API_KEY",
-    "PERPLEXITYAI_API_KEY",
-)
+# The names themselves live in llm.providers so that key detection, `doctor`,
+# and model resolution cannot disagree about what counts as a provider key.
+PROVIDER_KEY_VARS = tuple(providers.known_key_vars())
 
 
 def _scan_for_keys(path: Path) -> list[str]:
@@ -272,17 +263,19 @@ def apply_overrides(cfg: Config, overrides: dict[str, Any]) -> Config:
 
 
 def has_provider_key() -> bool:
-    import os
+    """Is any provider key set?
 
-    return any(os.environ.get(v) for v in PROVIDER_KEY_VARS)
+    Counts a suffixed name (`GEMINI_API_KEY_1`) as well as the canonical one,
+    because that is how a second key for the same provider is normally stored
+    and the auto-eval must not skip for someone who has one configured.
+    """
+    return bool(providers.present_key_vars())
 
 
 def detected_provider_family() -> str | None:
     """Provider prefix only. Telemetry never carries a model string, because a
     model string can contain a custom endpoint and therefore a hostname."""
-    import os
-
-    for var in PROVIDER_KEY_VARS:
-        if os.environ.get(var):
-            return var.removesuffix("_API_KEY").lower()
-    return None
+    detected = providers.detect()
+    if detected is None:
+        return None
+    return detected.key_env.removesuffix("_API_KEY").lower()

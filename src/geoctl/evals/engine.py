@@ -12,6 +12,7 @@ from typing import Any
 
 from ..cache import Cache
 from ..config import EvalConfig
+from ..llm import providers
 from ..llm.client import (
     CostLimitExceeded,
     Endpoint,
@@ -57,13 +58,82 @@ class EvalOutcome:
 
 
 def resolve_model(config: EvalConfig) -> str:
-    model = config.model or DEFAULT_ANSWERER
+    """The answerer model: the user's choice, else the detected provider's.
+
+    Falling back to a hardcoded `openai/gpt-4o-mini` meant that a user with only
+    a non-OpenAI key set — the exact population the "any OpenAI-compatible
+    endpoint" work in #43 exists to serve — got an authentication failure from the
+    headline feature instead of an eval (issue #45).
+    """
+    model = config.model
+    if not model:
+        detected = providers.detect()
+        if detected is not None:
+            model = detected.model
+    if not model:
+        model = DEFAULT_ANSWERER
     if "/" not in model:
         raise EvalConfigError(
             f"Model {model!r} must use the LiteLLM provider/model form, "
             "for example openai/gpt-4o-mini"
         )
     return model
+
+
+def resolve_embedding_model(config: EvalConfig) -> str | None:
+    """The embedding model, or None to use the deterministic lexical fallback.
+
+    Defaults to the detected provider's embedding model, because the OpenAI
+    default is unreachable without an OpenAI key and the eval would otherwise
+    silently degrade to lexical scoring for every other provider (issue #45).
+    """
+    if config.embedding_model:
+        return config.embedding_model
+    detected = providers.detect()
+    return detected.embedding_model if detected else None
+
+
+# Host fragment -> the key environment variable that authenticates against it.
+# Only for OpenAI-compatible hosts LiteLLM has no first-class provider for, where
+# nothing else would supply a key: passing --base-url without --api-key-env used
+# to forward no key at all, so the provider saw an anonymous request.
+_HOST_KEY_ENV = (
+    ("integrate.api.nvidia.com", "NVIDIA_API_KEY"),
+    ("api.groq.com", "GROQ_API_KEY"),
+    ("openrouter.ai", "OPENROUTER_API_KEY"),
+    ("api.together", "TOGETHERAI_API_KEY"),
+    ("localhost", "OPENAI_API_KEY"),
+    ("127.0.0.1", "OPENAI_API_KEY"),
+)
+
+
+def infer_api_key_env(base_url: str | None) -> str | None:
+    if not base_url:
+        return None
+    lowered = base_url.lower()
+    for host, env in _HOST_KEY_ENV:
+        if host in lowered:
+            return env
+    return None
+
+
+def resolve_endpoint(config: EvalConfig) -> Endpoint:
+    """Where calls go: the user's explicit base_url, else the detected provider's.
+
+    LiteLLM has no first-class provider for NVIDIA NIM, so a model named
+    `nvidia/...` routes nowhere unless `api_base` is passed. Inferring both the
+    model and the base URL from the same detected provider is what makes
+    "I set NVIDIA_API_KEY" mean "the eval runs" (issue #45).
+    """
+    base_url = config.base_url
+    api_key_env = config.api_key_env
+    if not base_url and not config.model:
+        detected = providers.detect()
+        if detected is not None:
+            base_url = base_url or detected.base_url
+            api_key_env = api_key_env or detected.key_env
+    api_key_env = api_key_env or infer_api_key_env(config.base_url)
+    return Endpoint(base_url=base_url, api_key=_read_api_key(api_key_env))
 
 
 def _pricing(config: EvalConfig) -> tuple[float | None, float | None]:
@@ -80,16 +150,17 @@ def _read_api_key(env_name: str | None) -> str | None:
     return os.environ.get(env_name)
 
 
-def embed_fn_for(config: EvalConfig) -> Any | None:
+def embed_fn_for(config: EvalConfig, model: str | None = None) -> Any | None:
     """Return a callable, or None when no embedding provider is configured.
 
     Returning None makes retrieval fall back to deterministic lexical scoring,
     which the report names explicitly, so scores are never compared across
     incomparable retrieval configurations.
     """
-    if not config.embedding_model:
+    model = model or resolve_embedding_model(config)
+    if not model:
         return None
-    endpoint = Endpoint(base_url=config.base_url, api_key=_read_api_key(config.api_key_env))
+    endpoint = resolve_endpoint(config)
 
     def _embed(texts: list[str], model: str) -> list[list[float]]:
         return retrieval_mod.embed(texts, model, endpoint=endpoint)
@@ -129,7 +200,7 @@ def plan(
         top_k=config.top_k,
         answer_model=model,
         judge_model=judge_model,
-        embed_model=config.embedding_model or "lexical",
+        embed_model=resolve_embedding_model(config) or "lexical",
         whole_page=whole_page,
         input_rate=config.input_cost_per_mtok,
         output_rate=config.output_cost_per_mtok,
@@ -170,10 +241,7 @@ def run(
     else:
         judge_note = ""
 
-    endpoint = Endpoint(
-        base_url=config.base_url,
-        api_key=_read_api_key(config.api_key_env),
-    )
+    endpoint = resolve_endpoint(config)
     # Named fields, not **kwargs: unpacking a dict into the dataclass hides the
     # field names from the type checker, and pyright rightly rejects it.
     input_rate, output_rate = _pricing(config)
@@ -194,6 +262,7 @@ def run(
         output_cost_per_mtok=output_rate,
     )
     embed_fn = embed_fn_for(config)
+    embedding_model = resolve_embedding_model(config) or retrieval_mod.DEFAULT_EMBEDDING
 
     page_results: list[runner_mod.PageResult] = []
     notes: list[str] = [n for n in (judge_note,) if n]
@@ -216,7 +285,7 @@ def run(
             trials=config.trials,
             top_k=config.top_k,
             embed_fn=embed_fn,
-            embedding_model=config.embedding_model or retrieval_mod.DEFAULT_EMBEDDING,
+            embedding_model=embedding_model,
         )
         page_results.append(page_result)
 
@@ -320,8 +389,9 @@ def unpriced_models(config: EvalConfig) -> list[str]:
     judge = config.judge_model or config.model
     if judge:
         models.append(judge)
-    if config.embedding_model:
-        models.append(config.embedding_model)
+    embedding = resolve_embedding_model(config)
+    if embedding:
+        models.append(embedding)
     input_rate, output_rate = _pricing(config)
     seen: list[str] = []
     for model in models:
