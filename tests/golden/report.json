@@ -1,0 +1,782 @@
+{
+  "schema_version": "1.0.0",
+  "tool": {
+    "name": "geoctl",
+    "version": "0.1.0"
+  },
+  "run": {
+    "id": "01J9ZK3Q8V6M2R4T7W1XH5N0AB",
+    "started_at": "2026-10-04T10:15:02Z",
+    "duration_ms": 4210,
+    "checks_version": "2026.10.0",
+    "eval_version": null,
+    "config": {
+      "max_pages": 1,
+      "bots": [
+        "GPTBot",
+        "OAI-SearchBot",
+        "ChatGPT-User",
+        "ClaudeBot",
+        "PerplexityBot",
+        "Google-Extended",
+        "CCBot"
+      ],
+      "policy": "report",
+      "fail_under": null,
+      "only": [],
+      "skip": [],
+      "concurrency": 4,
+      "timeout": 5,
+      "max_bytes": 5000000,
+      "render": false
+    }
+  },
+  "target": {
+    "url": "https://example.com",
+    "final_url": "https://example.com/",
+    "pages_audited": 1,
+    "sitemap_found": false
+  },
+  "score": {
+    "overall": 99.0,
+    "max": 100.0,
+    "categories": {
+      "access": {
+        "points": 75.0,
+        "max": 75.0
+      },
+      "discovery": {
+        "points": 0.0,
+        "max": 1.0
+      },
+      "rendering": {
+        "points": 24.0,
+        "max": 24.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "id": "ACC-002",
+      "category": "access",
+      "title": "Bot vs browser fetch parity",
+      "status": "pass",
+      "weight": 30,
+      "points": 30.0,
+      "confidence": "high",
+      "message": "All 7 bots receive the same content as a browser on 7 fetches.",
+      "evidence": {
+        "pages_compared": 7,
+        "bots": [
+          "GPTBot",
+          "OAI-SearchBot",
+          "ChatGPT-User",
+          "ClaudeBot",
+          "PerplexityBot",
+          "Google-Extended",
+          "CCBot"
+        ],
+        "divergence": [],
+        "thresholds": {
+          "pass_similarity": 0.9,
+          "warn_similarity": 0.6
+        },
+        "per_page": [
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "GPTBot"
+          },
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "OAI-SearchBot"
+          },
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "ChatGPT-User"
+          },
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "ClaudeBot"
+          },
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "PerplexityBot"
+          },
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "Google-Extended"
+          },
+          {
+            "browser_status": 200,
+            "bot_status": 200,
+            "status_match": true,
+            "browser_chars": 4124,
+            "bot_chars": 4124,
+            "size_ratio": 1.0,
+            "text_similarity": 1.0,
+            "bot_error": null,
+            "bot_blocked_by": null,
+            "bot_challenge": null,
+            "url": "http://<fixture-origin>/",
+            "bot": "CCBot"
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "ACC-001",
+      "category": "access",
+      "title": "robots.txt rules per AI bot",
+      "status": "pass",
+      "weight": 25,
+      "points": 25.0,
+      "confidence": "high",
+      "message": "No robots.txt; all configured bots are allowed by default.",
+      "evidence": {
+        "robots_url": "http://<fixture-origin>/robots.txt",
+        "robots_present": false,
+        "policy": "report",
+        "bots": [
+          {
+            "bot": "CCBot",
+            "purpose": "training",
+            "verdict": "allowed",
+            "token": "CCBot",
+            "matched_rule": null
+          },
+          {
+            "bot": "ChatGPT-User",
+            "purpose": "user_triggered",
+            "verdict": "allowed",
+            "token": "ChatGPT-User",
+            "matched_rule": null
+          },
+          {
+            "bot": "ClaudeBot",
+            "purpose": "training",
+            "verdict": "allowed",
+            "token": "ClaudeBot",
+            "matched_rule": null
+          },
+          {
+            "bot": "GPTBot",
+            "purpose": "training",
+            "verdict": "allowed",
+            "token": "GPTBot",
+            "matched_rule": null
+          },
+          {
+            "bot": "Google-Extended",
+            "purpose": "training",
+            "verdict": "allowed",
+            "token": "Google-Extended",
+            "matched_rule": null
+          },
+          {
+            "bot": "OAI-SearchBot",
+            "purpose": "search",
+            "verdict": "allowed",
+            "token": "OAI-SearchBot",
+            "matched_rule": null
+          },
+          {
+            "bot": "PerplexityBot",
+            "purpose": "search",
+            "verdict": "allowed",
+            "token": "PerplexityBot",
+            "matched_rule": null
+          }
+        ],
+        "blocked": [],
+        "blocked_by_purpose": {}
+      },
+      "fix": null
+    },
+    {
+      "id": "ACC-003",
+      "category": "access",
+      "title": "No blocking status or challenge page",
+      "status": "pass",
+      "weight": 20,
+      "points": 20.0,
+      "confidence": "high",
+      "message": "No blocking status or challenge page observed.",
+      "evidence": {
+        "responses_examined": 8,
+        "blocked_responses": 0,
+        "details": [],
+        "policy": "report"
+      },
+      "fix": null
+    },
+    {
+      "id": "REN-001",
+      "category": "rendering",
+      "title": "Text available without JavaScript",
+      "status": "pass",
+      "weight": 20,
+      "points": 20.0,
+      "confidence": "medium",
+      "message": "Every sampled page yields over 1200 characters of main text without JavaScript (no render comparison available).",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "nojs_chars": 2784,
+            "rendered_chars": 0,
+            "html_chars": 4124,
+            "extraction_ratio": 0.67507,
+            "framework_markers": [],
+            "shell_markers": []
+          }
+        ],
+        "framework_markers": [],
+        "shell_markers": [],
+        "render_compared": false,
+        "method": "absolute-threshold+shell-heuristics",
+        "thresholds": {
+          "pass_ratio": 0.8,
+          "fail_ratio": 0.4,
+          "pass_chars": 1200,
+          "min_render_chars": 400
+        }
+      },
+      "fix": null
+    },
+    {
+      "id": "REN-002",
+      "category": "rendering",
+      "title": "Main content extractable",
+      "status": "pass",
+      "weight": 4,
+      "points": 4.0,
+      "confidence": "high",
+      "message": "Main content extracts cleanly on all 1 pages.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "chars": 2784,
+            "html_chars": 4124,
+            "extraction_ratio": 0.67507,
+            "extraction_mode": "recall"
+          }
+        ],
+        "extraction_modes": [
+          "recall"
+        ],
+        "thresholds": {
+          "pass_chars": 300,
+          "fail_chars": 100,
+          "low_ratio": 0.01
+        },
+        "median_chars": 2784
+      },
+      "fix": null
+    },
+    {
+      "id": "DIS-001",
+      "category": "discovery",
+      "title": "Sitemap present and valid",
+      "status": "fail",
+      "weight": 1,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "No sitemap found (checked robots.txt Sitemap: directives and /sitemap.xml).",
+      "evidence": {
+        "found": false,
+        "sitemap_urls": [],
+        "url_count": 0,
+        "parse_errors": [],
+        "includes_start_url": false,
+        "stale_lastmod": [],
+        "sample": []
+      },
+      "fix": {
+        "summary": "Publish a sitemap.xml and reference it from robots.txt. It is the cheapest way for a crawler to enumerate your pages.",
+        "docs_url": "https://github.com/Amank-root/GeoProbe/blob/main/docs/CHECKS.md#dis-001",
+        "machine": null
+      }
+    },
+    {
+      "id": "STR-001",
+      "category": "structure",
+      "title": "Title present and specific",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Every sampled page has a specific title.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "title": "Acme Widgets: industrial widget supply since 2019",
+            "length": 49,
+            "in_range": true,
+            "generic": false
+          }
+        ],
+        "thresholds": {
+          "min": 10,
+          "max": 70
+        },
+        "duplicate_titles": {}
+      },
+      "fix": null
+    },
+    {
+      "id": "STR-002",
+      "category": "structure",
+      "title": "Meta description present",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Every sampled page has a meta description.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "description": "Acme Widgets supplies industrial widgets to manufacturers across Europe, with next-day delivery on stocked items.",
+            "length": 113,
+            "in_range": true
+          }
+        ],
+        "thresholds": {
+          "min": 50,
+          "max": 160
+        }
+      },
+      "fix": null
+    },
+    {
+      "id": "STR-003",
+      "category": "structure",
+      "title": "Canonical URL",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Every page has one self-referencing absolute canonical.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "final_url": "http://<fixture-origin>/",
+            "canonical": "http://<fixture-origin>/",
+            "canonical_count": 1,
+            "self_referencing": true,
+            "absolute": true
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "STR-004",
+      "category": "structure",
+      "title": "Exactly one H1",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Every page has exactly one non-empty H1.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "h1_count": 1,
+            "h1_texts": [
+              "Industrial widgets, delivered next day"
+            ],
+            "empty": false
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "STR-005",
+      "category": "structure",
+      "title": "Heading hierarchy",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Heading hierarchy is clean on every sampled page.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "outline": [
+              [
+                1,
+                "Industrial widgets, delivered next day"
+              ],
+              [
+                2,
+                "Product range"
+              ],
+              [
+                2,
+                "Support"
+              ],
+              [
+                2,
+                "Delivery and returns"
+              ],
+              [
+                2,
+                "Certifications and compliance"
+              ],
+              [
+                2,
+                "Installation and technical guidance"
+              ],
+              [
+                2,
+                "Frequently asked"
+              ],
+              [
+                3,
+                "Contact"
+              ]
+            ],
+            "skipped": [],
+            "empty_headings": [],
+            "h1_count": 1
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "STR-006",
+      "category": "structure",
+      "title": "lang attribute",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Every page declares a valid BCP-47 lang.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "lang": "en",
+            "valid": true
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "SD-001",
+      "category": "structured_data",
+      "title": "JSON-LD present and parses",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "JSON-LD is present and parses on every sampled page.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "blocks": 2,
+            "parsed": 2,
+            "types": [
+              "Organization",
+              "WebSite"
+            ],
+            "errors": []
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "SD-002",
+      "category": "structured_data",
+      "title": "Appropriate entity types",
+      "status": "warn",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "1 page(s) have JSON-LD that does not match the page's role (home expected one of ['Corporation', 'LocalBusiness', 'Organization', 'Person', 'WebSite']).",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "role": "home",
+            "types": [
+              "Organization",
+              "WebSite"
+            ],
+            "expected_any_of": [
+              "Corporation",
+              "LocalBusiness",
+              "Organization",
+              "Person",
+              "WebSite"
+            ],
+            "missing": [
+              "Corporation",
+              "LocalBusiness",
+              "Person"
+            ]
+          }
+        ],
+        "home_mandatory": "Organization"
+      },
+      "fix": {
+        "summary": "Match the JSON-LD @type to the page role: Article for posts, Product for product pages, FAQPage for FAQ pages.",
+        "docs_url": "https://github.com/Amank-root/GeoProbe/blob/main/docs/CHECKS.md#sd-002",
+        "machine": null
+      }
+    },
+    {
+      "id": "SD-003",
+      "category": "structured_data",
+      "title": "Open Graph basics",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Open Graph basics are complete.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "is_home": true,
+            "tags": {
+              "og:title": true,
+              "og:description": true,
+              "og:url": true,
+              "og:image": true
+            }
+          }
+        ],
+        "home_tags": [
+          "og:title",
+          "og:description",
+          "og:url",
+          "og:image"
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "DIS-002",
+      "category": "discovery",
+      "title": "Indexing / snippet directives",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "No conflicting indexing directives found.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "robots_meta": "index, follow",
+            "directives": [],
+            "in_sitemap": false
+          }
+        ],
+        "contradictions": []
+      },
+      "fix": null
+    },
+    {
+      "id": "DIS-003",
+      "category": "discovery",
+      "title": "llms.txt presence and shape",
+      "status": "fail",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "/llms.txt is not present.",
+      "evidence": {
+        "url": "http://<fixture-origin>/llms.txt",
+        "status": 404,
+        "content_type": "text/plain"
+      },
+      "fix": null
+    },
+    {
+      "id": "TRU-001",
+      "category": "trust",
+      "title": "Publish / modified dates",
+      "status": "warn",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "Dates need work: 0 page(s) with no date at all.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "dates": [
+              "2024-03-04T09:00:00Z"
+            ],
+            "sources": [
+              "meta:article:published_time"
+            ],
+            "unparseable": [],
+            "machine_readable": true
+          }
+        ],
+        "stale_lastmod": []
+      },
+      "fix": {
+        "summary": "Publish machine-readable dates. A lastmod in the future is a common sitemap defect and misleads crawlers.",
+        "docs_url": "https://github.com/Amank-root/GeoProbe/blob/main/docs/CHECKS.md#tru-001",
+        "machine": null
+      }
+    },
+    {
+      "id": "TRU-002",
+      "category": "trust",
+      "title": "Author or organization identified",
+      "status": "pass",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "An author or organization is identifiable.",
+      "evidence": {
+        "pages": [
+          {
+            "url": "http://<fixture-origin>/",
+            "source": "jsonld:author.name",
+            "value": "Acme Widgets",
+            "found": true
+          }
+        ]
+      },
+      "fix": null
+    },
+    {
+      "id": "SITE-001",
+      "category": "site",
+      "title": "HTTPS, HSTS, redirect chain sanity",
+      "status": "fail",
+      "weight": 0,
+      "points": 0.0,
+      "confidence": "high",
+      "message": "The site is not served over HTTPS.",
+      "evidence": {
+        "start_url": "http://<fixture-origin>/",
+        "final_url": "http://<fixture-origin>/",
+        "redirect_chain": [],
+        "hop_count": 0,
+        "loop_detected": false,
+        "start_https": false,
+        "final_https": false,
+        "hsts": null,
+        "hsts_max_age": null,
+        "max_hops": 1
+      },
+      "fix": {
+        "summary": "Serve every page over HTTPS and redirect HTTP to HTTPS.",
+        "docs_url": "https://github.com/Amank-root/GeoProbe/blob/main/docs/CHECKS.md#site-001",
+        "machine": null
+      }
+    }
+  ],
+  "pages": [
+    {
+      "url": "http://<fixture-origin>/",
+      "status_by_bot": {
+        "browser": 200,
+        "GPTBot": 200,
+        "OAI-SearchBot": 200,
+        "ChatGPT-User": 200,
+        "ClaudeBot": 200,
+        "PerplexityBot": 200,
+        "Google-Extended": 200,
+        "CCBot": 200
+      },
+      "text_chars": {
+        "browser-nojs": 2784,
+        "GPTBot": 2784,
+        "OAI-SearchBot": 2784,
+        "ChatGPT-User": 2784,
+        "ClaudeBot": 2784,
+        "PerplexityBot": 2784,
+        "Google-Extended": 2784,
+        "CCBot": 2784
+      },
+      "title": "Acme Widgets: industrial widget supply since 2019",
+      "h1_count": 1,
+      "json_ld_types": [
+        "Organization",
+        "WebSite"
+      ]
+    }
+  ],
+  "eval": null,
+  "errors": []
+}
