@@ -1,6 +1,11 @@
 # PRD: geoprobe
 
-> **Working name.** `geoprobe` is a placeholder. Check PyPI, npm, and GitHub for collisions before committing.
+> **Working name.** `geoprobe` is a placeholder and **cannot be used as-is**: the name is
+> taken on PyPI by a dormant, unrelated seismic-data library, and an operating commercial
+> product with heavily overlapping scope already runs at `geoprobe.ai`. The collision check
+> is complete and the replacement name is open — see
+> [#4](https://github.com/Amank-root/GeoProbe/issues/4). Milestone 1's PyPI release cannot
+> proceed under this name.
 
 | | |
 |---|---|

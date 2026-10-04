@@ -3,8 +3,11 @@
 > **Status: pre-release.** v0.1 is in development. This README describes the intended
 > behavior; the check catalog and scoring are still being calibrated.
 
-> **Working name.** `geoprobe` is a placeholder. Check PyPI, npm, and GitHub for
-> collisions before committing.
+> **Working name.** `geoprobe` is a placeholder and **cannot be used as-is**: the name is
+> taken on PyPI (a dormant, unrelated seismic-data library) and an operating commercial
+> product with overlapping scope already runs at `geoprobe.ai`. The collision check is
+> done; the replacement name is still open. Until it is settled, `geoprobe` appears
+> throughout only as a working name. See [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 
 An open-source CLI that tells you whether AI systems can **reach**, **read**, and
 **correctly answer questions from** your website, and helps you fix what's broken.
