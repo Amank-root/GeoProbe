@@ -131,7 +131,7 @@ Per page and overall:
 | **Abstention rate** | abstained / total |
 | **Hallucination rate** | incorrect / total |
 | **Coverage loss** (if rendered) | questions answerable from ground truth but abstained/incorrect from the crawler view |
-| **Standard error** | binomial SE of the mean across questions, ±95% CI on the mean |
+| **95% CI** | binomial 95% interval on the mean across questions, reported as `ci95` |
 
 **Context recall is the diagnostic that justifies the whole design.** A question can fail
 because the span was never retrieved (fix your extraction or chunking) or because it was
@@ -163,15 +163,28 @@ was missing from the crawler view. That list is the actionable output.
 
 ### 4.2 Resolution: why the default is 50 questions, not 10
 
-Sampling noise dominates at small question counts. At a true rate of 0.6, the binomial
-standard error is roughly:
+Sampling noise dominates at small question counts. At a true rate of 0.6:
 
-| Questions per page | Standard error | Approx. 95% CI on the mean |
+| Questions per page | Standard error | True 95% CI half-width on the mean |
 |---|---|---|
-| 10 | 0.155 | ± 15 points |
-| 25 | 0.098 | ± 10 points |
-| **50** | **0.069** | **± 7 points** |
-| 100 | 0.049 | ± 5 points |
+| 10 | 0.155 | ± 30 points |
+| 25 | 0.098 | ± 19 points |
+| **50** | **0.069** | **± 14 points** |
+| 100 | 0.049 | ± 10 points |
+| 450 (3 pages × 50 × 3 trials) | 0.023 | ± 5 points |
+
+An earlier revision of this table put the standard error in the "95% CI" column. That
+was wrong by a factor of two, and it is worth stating plainly because two downstream
+defaults were derived from it: `--fail-under-eval-margin` is **± 15 points** (just
+above the true half-width at 50 questions), and the eval's `ci95` field reports the
+real 95% interval, not a standard error.
+
+**A 95% CI of ±14 points cannot support a 10-point threshold decision.** So the
+margin and the threshold have to be chosen together: at the defaults, gating on
+`--fail-under-eval 70` means a true 62 will fail, and a true 68 will not be able to
+distinguish itself from the threshold with confidence. Users who need a tighter gate
+should raise `--questions` toward 100 (halving the half-width to about ±10) rather
+than lower the margin and start failing on noise.
 
 The previous draft targeted a standard deviation of ≤ 0.10 while defaulting to 10
 questions per page. That target was unreachable by roughly an order of magnitude, and it
@@ -187,9 +200,11 @@ could ship. Three decisions follow, and they apply to the PRD's success metrics 
   what produced the earlier implausible target.
 - **`--fail-under-eval` refuses to gate on a low-confidence eval.** A CI of ±20 points
   cannot support a threshold decision. When the run is low-confidence (`crawler_only`
-  ground truth) or the CI is wider than a configured `--fail-under-eval-margin` (default
-  10), the tool prints a warning and **exits 0** rather than failing the build on noise.
-  Opt in to strict behavior with `--strict-eval`.
+  ground truth) or the CI half-width exceeds `--fail-under-eval-margin` (default ±15),
+  the tool prints a warning and **exits 0** rather than failing the build on noise. The
+  comparison is against the CI **half-width**, so a run is judged by the "±N points"
+  the flag name implies rather than by twice that. Opt in to strict behavior with
+  `--strict-eval`.
 
 Interpreting the earlier targets: "eval stddev ≤ 0.10" in the PRD meant 0.10 as a
 *fraction* of the score (i.e. ±10 points), not 0.10 points. The docs never said which, and
