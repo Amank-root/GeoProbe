@@ -1,0 +1,24 @@
+checks:
+  ACC-001: pass
+  ACC-002: pass
+  ACC-003: pass
+  DIS-001: pass
+  DIS-002: pass
+  DIS-003: pass
+  REN-001: warn
+  REN-002: fail
+  SD-001: fail
+  SD-002: fail
+  SD-003: fail
+  SITE-001: fail
+  STR-001: pass
+  STR-002: pass
+  STR-003: pass
+  STR-004: pass
+  STR-005: pass
+  STR-006: pass
+  TRU-001: fail
+  TRU-002: fail
+covers: 'row 28: the case the eval exists to catch'
+fixture: facts-in-client-component
+known_good: false
