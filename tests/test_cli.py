@@ -350,17 +350,34 @@ def test_no_cache_flag_still_produces_a_report(local_site):
 # ------------------------------------------- custom endpoints and cost ceiling
 
 
+NEW_EVAL_FLAGS = (
+    "--embedding-model",
+    "--base-url",
+    "--api-key-env",
+    "--input-cost-per-mtok",
+    "--output-cost-per-mtok",
+)
+
+
 def test_the_new_endpoint_flags_exist():
-    """FR-18 promises any model reachable through the abstraction layer."""
-    help_text = combined(run("audit", "--help"))
-    for flag in (
-        "--embedding-model",
-        "--base-url",
-        "--api-key-env",
-        "--input-cost-per-mtok",
-        "--output-cost-per-mtok",
-    ):
-        assert flag in help_text, f"{flag} is missing from --help"
+    """FR-18 promises any model reachable through the abstraction layer.
+
+    Asserted against the command's own parameter metadata rather than the
+    rendered --help box: Rich wraps help to the terminal width, so a flag name
+    can be split across lines, which would make this assertion depend on the
+    runner's width rather than on the code.
+    """
+    import inspect
+
+    from geoctl.cli import _audit_command
+
+    # Typer derives each CLI flag from the parameter name, so the signature is
+    # the authoritative list of what the command accepts.
+    declared = {
+        f"--{name.replace('_', '-')}" for name in inspect.signature(_audit_command).parameters
+    }
+    for flag in NEW_EVAL_FLAGS:
+        assert flag in declared, f"{flag} is not a real option"
 
 
 def test_max_cost_hard_fails_on_an_unpriced_model(local_site, monkeypatch):
