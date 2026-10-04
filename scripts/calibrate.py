@@ -25,13 +25,11 @@ def render_report(calibration) -> str:  # type: ignore[no-untyped-def]
     from test_calibration import FALSE_POSITIVE_EXCLUSIONS, SCORED_IDS
 
     good = sum(1 for _n, _b, is_good, _notes in FIXTURES if is_good)
-    lines.append(f"- Fixtures: {len(FIXTURES)} ({good} known-good, "
-                 f"{good / len(FIXTURES):.0%})")
+    lines.append(f"- Fixtures: {len(FIXTURES)} ({good} known-good, {good / len(FIXTURES):.0%})")
     lines.append(f"- Check comparisons: {calibration.compared}")
     lines.append("")
 
-    counted = [fp for fp in calibration.false_positives
-               if fp[1] not in FALSE_POSITIVE_EXCLUSIONS]
+    counted = [fp for fp in calibration.false_positives if fp[1] not in FALSE_POSITIVE_EXCLUSIONS]
     rate = len(counted) / calibration.compared if calibration.compared else 0.0
     lines.append("## How to read this report")
     lines.append("")
@@ -43,9 +41,7 @@ def render_report(calibration) -> str:  # type: ignore[no-untyped-def]
         "wrong in its expectation file too."
     )
     lines.append("")
-    lines.append(
-        "What this run does establish, and what has to happen next:"
-    )
+    lines.append("What this run does establish, and what has to happen next:")
     lines.append("")
     lines.append(
         "- Established: every fixture reproduces the same statuses on every run, "
@@ -104,16 +100,12 @@ def render_report(calibration) -> str:  # type: ignore[no-untyped-def]
     lines.append("")
     lines.append("| Check | Compared | False pos | False neg |")
     lines.append("|---|---:|---:|---:|")
-    ordered = list(SCORED_IDS) + sorted(
-        k for k in calibration.per_check if k not in SCORED_IDS
-    )
+    ordered = list(SCORED_IDS) + sorted(k for k in calibration.per_check if k not in SCORED_IDS)
     for check_id in ordered:
         stats = calibration.per_check.get(check_id)
         if not stats:
             continue
-        lines.append(
-            f"| {check_id} | {stats['compared']} | {stats['fp']} | {stats['fn']} |"
-        )
+        lines.append(f"| {check_id} | {stats['compared']} | {stats['fp']} | {stats['fn']} |")
     lines.append("")
     return "\n".join(lines)
 

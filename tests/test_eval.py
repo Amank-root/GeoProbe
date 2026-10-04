@@ -25,9 +25,7 @@ from geoctl.util import binomial_ci95
 
 
 def test_chunking_splits_on_heading_boundaries():
-    text = "\n\n".join(
-        [f"# Section {i}\n\n" + (f"Body sentence {i}. " * 40) for i in range(6)]
-    )
+    text = "\n\n".join([f"# Section {i}\n\n" + (f"Body sentence {i}. " * 40) for i in range(6)])
     chunks = r_mod.chunk_text(text, target_tokens=100, overlap_pct=0)
     assert len(chunks) > 1
     assert all(c.text.strip() for c in chunks)
@@ -58,8 +56,9 @@ def test_large_page_stays_chunked():
 
 
 def test_span_retrieved_detects_a_present_span():
-    chunks = r_mod.chunk_text("# Pricing\n\nThe Starter plan costs $19 per month. " * 30,
-                              target_tokens=60)
+    chunks = r_mod.chunk_text(
+        "# Pricing\n\nThe Starter plan costs $19 per month. " * 30, target_tokens=60
+    )
     assert r_mod.span_retrieved("The Starter plan costs $19 per month.", chunks)
 
 
@@ -69,8 +68,9 @@ def test_span_retrieved_is_false_for_absent_span():
 
 
 def test_retrieval_is_deterministic_without_an_embedder():
-    chunks = r_mod.chunk_text("# A\n\nalpha beta gamma delta\n\n# B\n\nepsilon zeta eta theta",
-                              target_tokens=10)
+    chunks = r_mod.chunk_text(
+        "# A\n\nalpha beta gamma delta\n\n# B\n\nepsilon zeta eta theta", target_tokens=10
+    )
     first = r_mod.retrieve("alpha beta", chunks, top_k=2)
     second = r_mod.retrieve("alpha beta", chunks, top_k=2)
     assert [c.index for c, _ in first] == [c.index for c, _ in second]
@@ -229,8 +229,7 @@ def test_binomial_ci_narrows_with_more_questions():
     50 is the default and 10 is not. (EVALS §4.2 tabulates the 1-SE figures;
     this test uses the 95% ones the code actually reports.)
     """
-    half = {n: (binomial_ci95(0.6, n)[1] - binomial_ci95(0.6, n)[0]) / 2
-            for n in (10, 50, 100)}
+    half = {n: (binomial_ci95(0.6, n)[1] - binomial_ci95(0.6, n)[0]) / 2 for n in (10, 50, 100)}
     assert half[10] > half[50] > half[100]
     assert round(half[50] * 100) == 14
     assert round(half[10] * 100) == 30
@@ -263,17 +262,22 @@ def test_per_trial_stddev_and_ci_are_separate_quantities():
 
 def test_answerability_weights_partial_credit_at_half():
     page = runner_mod.PageResult(url="u", question_count=4)
-    page.outcomes = [runner_mod.TrialOutcome(
-        verdicts=["correct", "partially_correct", "incorrect", "abstained"])]
+    page.outcomes = [
+        runner_mod.TrialOutcome(verdicts=["correct", "partially_correct", "incorrect", "abstained"])
+    ]
     stats = runner_mod.aggregate(page, 4)
     assert stats["mean"] == 37.5  # (1 + 0.5) / 4
 
 
 def test_retrieval_gap_separates_extraction_from_writing():
     page = runner_mod.PageResult(url="u", question_count=4)
-    page.outcomes = [runner_mod.TrialOutcome(
-        verdicts=["correct", "incorrect", "incorrect", "incorrect"], span_hits=4,
-        spans_available=4)]
+    page.outcomes = [
+        runner_mod.TrialOutcome(
+            verdicts=["correct", "incorrect", "incorrect", "incorrect"],
+            span_hits=4,
+            spans_available=4,
+        )
+    ]
     result = runner_mod.merge_page_results([page])
     # Every span was retrieved, yet the score is low: a writing problem.
     assert result.context_recall == 1.0
@@ -290,8 +294,7 @@ def test_missing_spans_do_not_report_zero_recall():
 # ------------------------------------------------------------- threshold gating
 
 
-def _eval_result(mean: float, low: str = "high",
-                 ci: tuple[float, float] = (55.0, 69.0)):  # type: ignore[no-untyped-def]
+def _eval_result(mean: float, low: str = "high", ci: tuple[float, float] = (55.0, 69.0)):  # type: ignore[no-untyped-def]
     from geoctl.models import Confidence, EvalResult, RetrievalReport
 
     confidence: Confidence = "low" if low == "low" else "high"
@@ -304,8 +307,14 @@ def _eval_result(mean: float, low: str = "high",
         questions_per_page=50,
         pages_evaluated=1,
         answerability={"mean": mean, "ci95": list(ci)},
-        retrieval=RetrievalReport(mode="chunked", top_k=5, chunk_target_tokens=400,
-                                   chunk_overlap_pct=10, embedding_model="x", chunk_count=12),
+        retrieval=RetrievalReport(
+            mode="chunked",
+            top_k=5,
+            chunk_target_tokens=400,
+            chunk_overlap_pct=10,
+            embedding_model="x",
+            chunk_count=12,
+        ),
     )
 
 
@@ -357,9 +366,7 @@ def test_strict_eval_opts_into_gating_on_noise():
 
 
 def test_low_confidence_eval_never_gates_ci():
-    fail, note = runner_mod.decide_threshold(
-        _eval_result(20.0, low="low"), fail_under=70
-    )
+    fail, note = runner_mod.decide_threshold(_eval_result(20.0, low="low"), fail_under=70)
     assert fail is False
     assert "circular" in note
 
@@ -373,23 +380,38 @@ def test_no_threshold_configured_means_no_failure():
 
 def test_run_page_produces_a_result_with_a_recorded_llm():
     llm = SubstringScriptedLLM()
-    llm.on("GROUND TRUTH", generated_questions(
-        [("How much is Starter?", "$19 per month", "The Starter plan costs $19 per month.")]
-    ))
+    llm.on(
+        "GROUND TRUTH",
+        generated_questions(
+            [("How much is Starter?", "$19 per month", "The Starter plan costs $19 per month.")]
+        ),
+    )
     llm.on("Retrieved context", answer_uses_context())
     llm.on("Grade the candidate", judge_says("correct"))
 
     corpus = runner_mod.PageCorpus(
         url="https://example.com/pricing",
-        crawler_text=("# Pricing\n\nThe Starter plan costs $19 per month. "
-                      + ("Filler content about widgets and delivery. " * 200)),
+        crawler_text=(
+            "# Pricing\n\nThe Starter plan costs $19 per month. "
+            + ("Filler content about widgets and delivery. " * 200)
+        ),
         ground_truth_text="# Pricing\n\nThe Starter plan costs $19 per month.",
     )
-    result = runner_mod.run_page(llm, llm, corpus, [
-        q_mod.Question(question="How much is Starter?",
-                       reference_answer=REFERENCE,
-                       source_span="The Starter plan costs $19 per month.")
-    ], trials=2, top_k=3, embed_fn=None)
+    result = runner_mod.run_page(
+        llm,
+        llm,
+        corpus,
+        [
+            q_mod.Question(
+                question="How much is Starter?",
+                reference_answer=REFERENCE,
+                source_span="The Starter plan costs $19 per month.",
+            )
+        ],
+        trials=2,
+        top_k=3,
+        embed_fn=None,
+    )
 
     merged = runner_mod.merge_page_results([result])
     assert merged.answerability["mean"] == 100.0
@@ -409,10 +431,21 @@ def test_retrieval_loss_is_reported_as_content_not_in_crawler_view():
         crawler_text="# Shipping\n\n" + ("We ship from Rotterdam. " * 400),
         ground_truth_text="The Starter plan costs $19 per month.",
     )
-    result = runner_mod.run_page(llm, llm, corpus, [
-        q_mod.Question(question="How much is Starter?", reference_answer=REFERENCE,
-                       source_span="The Starter plan costs $19 per month.")
-    ], trials=1, top_k=3, embed_fn=None)
+    result = runner_mod.run_page(
+        llm,
+        llm,
+        corpus,
+        [
+            q_mod.Question(
+                question="How much is Starter?",
+                reference_answer=REFERENCE,
+                source_span="The Starter plan costs $19 per month.",
+            )
+        ],
+        trials=1,
+        top_k=3,
+        embed_fn=None,
+    )
 
     assert result.failures
     assert result.failures[0].span_retrieved is False
@@ -423,12 +456,24 @@ def test_cost_estimate_scales_with_questions_and_trials():
     from geoctl.evals.cost import estimate
 
     texts = ["x" * 20_000] * 3
-    small = estimate(pages=3, questions_per_page=10, trials=1, page_texts=texts,
-                     chunks_per_page=20, answer_model="openai/gpt-4o-mini",
-                     judge_model="openai/gpt-4o-mini")
-    large = estimate(pages=3, questions_per_page=100, trials=3, page_texts=texts,
-                     chunks_per_page=20, answer_model="openai/gpt-4o-mini",
-                     judge_model="openai/gpt-4o-mini")
+    small = estimate(
+        pages=3,
+        questions_per_page=10,
+        trials=1,
+        page_texts=texts,
+        chunks_per_page=20,
+        answer_model="openai/gpt-4o-mini",
+        judge_model="openai/gpt-4o-mini",
+    )
+    large = estimate(
+        pages=3,
+        questions_per_page=100,
+        trials=3,
+        page_texts=texts,
+        chunks_per_page=20,
+        answer_model="openai/gpt-4o-mini",
+        judge_model="openai/gpt-4o-mini",
+    )
 
     assert large.cost_usd > small.cost_usd
     assert large.answer_calls == 3 * 100 * 3
@@ -442,9 +487,15 @@ def test_max_cost_guard():
     from geoctl.evals.engine import check_budget
     from geoctl.llm.client import CostLimitExceeded
 
-    est = estimate(pages=3, questions_per_page=100, trials=3, page_texts=["x" * 20_000] * 3,
-                   chunks_per_page=20, answer_model="openai/gpt-4o-mini",
-                   judge_model="openai/gpt-4o-mini")
+    est = estimate(
+        pages=3,
+        questions_per_page=100,
+        trials=3,
+        page_texts=["x" * 20_000] * 3,
+        chunks_per_page=20,
+        answer_model="openai/gpt-4o-mini",
+        judge_model="openai/gpt-4o-mini",
+    )
     with pytest.raises(CostLimitExceeded, match="exceeds"):
         check_budget(est, max_cost=0.0000001)
     check_budget(est, max_cost=100.0)  # does not raise

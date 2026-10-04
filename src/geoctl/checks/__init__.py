@@ -67,8 +67,7 @@ def _matches(token: str, check: Check) -> bool:
     return needle in (check.id.lower(), check.category.lower())
 
 
-def select(only: Iterable[str] | None = None,
-           skip: Iterable[str] | None = None) -> list[Check]:
+def select(only: Iterable[str] | None = None, skip: Iterable[str] | None = None) -> list[Check]:
     """Apply --only / --skip, which accept check IDs and category names."""
     only_list = [t for t in (only or []) if t.strip()]
     skip_list = [t for t in (skip or []) if t.strip()]
@@ -86,9 +85,9 @@ def select(only: Iterable[str] | None = None,
     return chosen
 
 
-def run_all(ctx: AuditContext,
-            only: Iterable[str] | None = None,
-            skip: Iterable[str] | None = None) -> list[CheckResult]:
+def run_all(
+    ctx: AuditContext, only: Iterable[str] | None = None, skip: Iterable[str] | None = None
+) -> list[CheckResult]:
     """Run the selected checks. One check failing never aborts the run."""
     results: list[CheckResult] = []
     for check in select(only, skip):

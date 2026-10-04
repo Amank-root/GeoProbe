@@ -33,12 +33,14 @@ class ACC001Robots:
         if robots is None:
             return skip(self, "robots.txt was not fetched")
         if robots.parse_failed:
-            return result(self, "warn", "robots.txt could not be parsed; treated as no rules",
-                          evidence={"robots_url": robots.url, "parse_error": True})
+            return result(
+                self,
+                "warn",
+                "robots.txt could not be parsed; treated as no rules",
+                evidence={"robots_url": robots.url, "parse_error": True},
+            )
 
-        blocked = sorted(
-            name for name, v in robots.verdicts.items() if v["verdict"] == "blocked"
-        )
+        blocked = sorted(name for name, v in robots.verdicts.items() if v["verdict"] == "blocked")
         # A missing robots.txt is default-allow and is a pass, with the absence
         # itself reported so the user can tell the difference (CHECKS ACC-001).
         if not blocked:
@@ -51,25 +53,29 @@ class ACC001Robots:
 
         if ctx.policy == "ignore":
             return result(
-                self, "pass",
+                self,
+                "pass",
                 f"{len(blocked)} bots are blocked; --policy ignore treats this as a decision",
-                          evidence=self._evidence(ctx))
+                evidence=self._evidence(ctx),
+            )
         if ctx.policy == "report":
             return result(
-                self, "warn",
+                self,
+                "warn",
                 f"{len(blocked)} of {len(robots.verdicts)} bots are blocked by robots.txt "
                 f"({', '.join(blocked)}). Reported as policy, not failure.",
                 fix="Confirm this block is deliberate. Blocking training bots while allowing "
-                    "search bots is a legitimate policy; blocking search or user-triggered "
-                    "bots usually is not.",
+                "search bots is a legitimate policy; blocking search or user-triggered "
+                "bots usually is not.",
                 evidence=self._evidence(ctx),
             )
         return result(
-            self, "fail",
+            self,
+            "fail",
             f"{len(blocked)} of {len(robots.verdicts)} bots are blocked by robots.txt "
             f"({', '.join(blocked)}).",
             fix="Relax the robots.txt rules for the bots you want to reach, or accept the "
-                "block with --policy report.",
+            "block with --policy report.",
             evidence=self._evidence(ctx),
         )
 
@@ -136,7 +142,8 @@ class ACC002Parity:
         diverged: list[dict[str, Any]] = []
         for bot, rows in by_bot.items():
             blocked_rows = [
-                r for r in rows
+                r
+                for r in rows
                 if not r["status_match"]
                 or (r["bot_error"] and r["bot_blocked_by"] in ("waf", "challenge"))
                 or (r["text_similarity"] is not None and r["text_similarity"] < PASS_SIMILARITY)
@@ -165,24 +172,29 @@ class ACC002Parity:
         }
 
         if not diverged:
-            return result(self, "pass",
-                          f"All {len(bots)} bots receive the same content as a browser on "
-                          f"{len(comparisons)} fetches.",
-                          evidence=evidence)
+            return result(
+                self,
+                "pass",
+                f"All {len(bots)} bots receive the same content as a browser on "
+                f"{len(comparisons)} fetches.",
+                evidence=evidence,
+            )
 
         majority = [d for d in diverged if d["share"] > MINORITY_PAGE_RATIO]
         if majority:
             names = ", ".join(d["bot"] for d in majority)
             return result(
-                self, "fail",
+                self,
+                "fail",
                 f"{names} receive different content than a browser on a majority of pages.",
                 fix="Check WAF / bot-protection rules for these user-agents. A robots.txt "
-                    "parse cannot see this, which is why the fetch comparison exists.",
+                "parse cannot see this, which is why the fetch comparison exists.",
                 evidence=evidence,
             )
         names = ", ".join(d["bot"] for d in diverged)
         return result(
-            self, "warn",
+            self,
+            "warn",
             f"{names} differ from the browser view on a minority of pages.",
             fix="Check WAF / bot-protection rules for these user-agents.",
             evidence=evidence,
@@ -233,29 +245,35 @@ class ACC003NoBlock:
         }
 
         if not blocked:
-            return result(self, "pass", "No blocking status or challenge page observed.",
-                          evidence=evidence)
+            return result(
+                self, "pass", "No blocking status or challenge page observed.", evidence=evidence
+            )
 
         if start_blocked and ctx.policy != "ignore":
             return result(
-                self, "fail",
+                self,
+                "fail",
                 f"The start URL is blocked ({blocked[0]['blocked_by'] or blocked[0]['status']}).",
                 fix="Your own site is refusing the simulated crawlers. geoctl sends an "
-                    "X-Geoctl-Test header and aims to audit sites you control.",
+                "X-Geoctl-Test header and aims to audit sites you control.",
                 evidence=evidence,
             )
 
         share = len(blocked) / total if total else 1.0
         if share > MINORITY_PAGE_RATIO and ctx.policy == "fail":
-            return result(self, "fail",
-                          f"{len(blocked)} of {total} responses were blocked or challenged.",
-                          evidence=evidence)
+            return result(
+                self,
+                "fail",
+                f"{len(blocked)} of {total} responses were blocked or challenged.",
+                evidence=evidence,
+            )
         return result(
-            self, "warn",
+            self,
+            "warn",
             f"{len(blocked)} of {total} responses were blocked or challenged, "
             "including at least one challenge page returned with 200.",
             fix="A 200 challenge page reads as success on status alone. Check bot-protection "
-                "configuration for the affected paths.",
+            "configuration for the affected paths.",
             evidence=evidence,
         )
 

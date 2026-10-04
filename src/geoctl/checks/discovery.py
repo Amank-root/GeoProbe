@@ -34,10 +34,11 @@ class DIS001Sitemap:
 
         if not sitemap.found:
             return result(
-                self, "fail",
+                self,
+                "fail",
                 "No sitemap found (checked robots.txt Sitemap: directives and /sitemap.xml).",
                 fix="Publish a sitemap.xml and reference it from robots.txt. It is the cheapest "
-                    "way for a crawler to enumerate your pages.",
+                "way for a crawler to enumerate your pages.",
                 evidence=evidence,
             )
         if sitemap.parse_errors or not sitemap.includes_start_url:
@@ -46,13 +47,19 @@ class DIS001Sitemap:
                 problems.append(f"{len(sitemap.parse_errors)} parse problem(s)")
             if not sitemap.includes_start_url:
                 problems.append("the start URL is not listed")
-            return result(self, "warn", "Sitemap found but: " + "; ".join(problems) + ".",
-                          fix="Fix the parse errors and list the page you are auditing.",
-                          evidence=evidence)
-        return result(self, "pass",
-                      f"Sitemap found with {len(sitemap.urls)} same-origin URLs, including "
-                      "the start URL.",
-                      evidence=evidence)
+            return result(
+                self,
+                "warn",
+                "Sitemap found but: " + "; ".join(problems) + ".",
+                fix="Fix the parse errors and list the page you are auditing.",
+                evidence=evidence,
+            )
+        return result(
+            self,
+            "pass",
+            f"Sitemap found with {len(sitemap.urls)} same-origin URLs, including the start URL.",
+            evidence=evidence,
+        )
 
 
 class DIS002Indexing:
@@ -89,31 +96,35 @@ class DIS002Indexing:
 
         if "noindex" in start["directives"]:
             return result(
-                self, "fail",
+                self,
+                "fail",
                 "The start URL carries a noindex directive.",
                 fix="Remove the noindex meta tag. It tells crawlers not to index this page, "
-                    "which silently defeats your own crawl strategy.",
+                "which silently defeats your own crawl strategy.",
                 evidence=evidence,
             )
         if contradictions:
             return result(
-                self, "warn",
+                self,
+                "warn",
                 f"{len(contradictions)} page(s) are listed in the sitemap but declare "
                 f"{', '.join(sorted({d for r in contradictions for d in r['directives']}))}.",
                 fix="Remove the page from the sitemap or drop the directive. A sitemap is a "
-                    "request to index, so the two contradict each other.",
+                "request to index, so the two contradict each other.",
                 evidence=evidence,
             )
         clean = [r for r in rows if not r["directives"]]
         if len(clean) == len(rows):
-            return result(self, "pass", "No conflicting indexing directives found.",
-                          evidence=evidence)
+            return result(
+                self, "pass", "No conflicting indexing directives found.", evidence=evidence
+            )
         return result(
-            self, "warn",
+            self,
+            "warn",
             f"{len(rows) - len(clean)} page(s) declare indexing directives that are not in the "
             "sitemap.",
             fix="Intentional? A nosnippet or noarchive directive can suppress how a result is "
-                "surfaced.",
+            "surfaced.",
             evidence=evidence,
         )
 
@@ -139,26 +150,33 @@ class DIS003LlmsTxt:
             # Explicitly not a penalty: current public evidence says crawlers
             # essentially never fetch this file (CHECKS §7).
             return result(
-                self, "fail",
+                self,
+                "fail",
                 "/llms.txt is not present.",
                 evidence=evidence,
             )
         if not fetch.ok:
-            return result(self, "warn", f"/llms.txt returned HTTP {fetch.status}.",
-                          evidence=evidence)
+            return result(
+                self, "warn", f"/llms.txt returned HTTP {fetch.status}.", evidence=evidence
+            )
 
         body = (fetch.body or b"").decode("utf-8", "replace")
         has_h1 = any(line.startswith("# ") for line in body.splitlines())
         links = [line for line in body.splitlines() if "](" in line]
         summary_lines = [
-            line for line in body.splitlines()
+            line
+            for line in body.splitlines()
             if line.strip() and not line.startswith(("#", "-", "["))
         ]
         evidence.update(
-            {"bytes": len(body), "has_h1": has_h1, "link_count": len(links),
-             "has_summary": bool(summary_lines)}
+            {
+                "bytes": len(body),
+                "has_h1": has_h1,
+                "link_count": len(links),
+                "has_summary": bool(summary_lines),
+            }
         )
-        content_type = (fetch.headers.get("content-type") or "")
+        content_type = fetch.headers.get("content-type") or ""
         evidence["is_markdown"] = "text/plain" in content_type or "text/markdown" in content_type
 
         problems = []
@@ -169,9 +187,12 @@ class DIS003LlmsTxt:
         if not summary_lines:
             problems.append("no summary text")
         if problems:
-            return result(self, "warn",
-                          "/llms.txt exists but is malformed (" + ", ".join(problems) + ").",
-                          evidence=evidence)
+            return result(
+                self,
+                "warn",
+                "/llms.txt exists but is malformed (" + ", ".join(problems) + ").",
+                evidence=evidence,
+            )
         return result(self, "pass", "/llms.txt is present and well-formed.", evidence=evidence)
 
 

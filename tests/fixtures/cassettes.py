@@ -30,16 +30,20 @@ class SubstringScriptedLLM:
         self.rules.append((needle, response))
         return self
 
-    def complete(self, prompt: str, *, system: str | None = None,
-                 max_tokens: int | None = None, model: str | None = None,
-                 expect_json: bool = False) -> str:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        max_tokens: int | None = None,
+        model: str | None = None,
+        expect_json: bool = False,
+    ) -> str:
         self.calls.append((system or "", prompt))
         for needle, response in self.rules:
             if needle in prompt:
                 return response
-        raise AssertionError(
-            f"No recorded response matched prompt containing {prompt[:120]!r}"
-        )
+        raise AssertionError(f"No recorded response matched prompt containing {prompt[:120]!r}")
 
 
 def generated_questions(rows: list[tuple[str, str, str]]) -> str:

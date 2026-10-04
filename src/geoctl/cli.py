@@ -67,6 +67,7 @@ def emit(text: str) -> None:
         sys.stdout.write("\n")
     sys.stdout.flush()
 
+
 def _version_callback(value: bool) -> None:
     if value:
         emit(__version__)
@@ -81,13 +82,15 @@ SETTINGS: dict[str, Any] = {"config": None, "verbose": 0, "quiet": False}
 
 @app.callback(context_settings={"help_option_names": ["-h", "--help"]})
 def global_options(
-    config: Path | None = typer.Option(
-        None, "--config", help="Use a specific config file"
-    ),
+    config: Path | None = typer.Option(None, "--config", help="Use a specific config file"),
     verbose: int = typer.Option(0, "-v", "--verbose", count=True),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Errors only"),
     version: bool | None = typer.Option(
-        None, "--version", "-V", callback=_version_callback, is_eager=True,
+        None,
+        "--version",
+        "-V",
+        callback=_version_callback,
+        is_eager=True,
         help="Print the version and exit",
     ),
 ) -> None:
@@ -143,24 +146,27 @@ def _audit_command(
     url: str = typer.Argument(..., help="The site to audit"),
     max_pages: int = typer.Option(None, help="Pages to audit (default 10)"),
     bots: str = typer.Option(None, help="Comma-separated bot names to simulate"),
-    format: list[str] = typer.Option(["terminal"], "--format", "-f",
-                                      help="terminal | json | markdown (repeatable)"),
+    format: list[str] = typer.Option(
+        ["terminal"], "--format", "-f", help="terminal | json | markdown (repeatable)"
+    ),
     output: str = typer.Option(None, "--output", "-o", help="Write the report to a file"),
     fail_under: float = typer.Option(None, help="Exit 1 if the deterministic score < N"),
-    fail_under_eval: float = typer.Option(None,
-                                          help="Exit 1 if answerability < N (needs an eval)"),
-    render: bool = typer.Option(False, "--render/--no-render",
-                                help="Also fetch with a browser for no-JS vs rendered"),
-    allow_private: bool = typer.Option(False, "--allow-private",
-                                       help="Allow private/loopback targets"),
+    fail_under_eval: float = typer.Option(None, help="Exit 1 if answerability < N (needs an eval)"),
+    render: bool = typer.Option(
+        False, "--render/--no-render", help="Also fetch with a browser for no-JS vs rendered"
+    ),
+    allow_private: bool = typer.Option(
+        False, "--allow-private", help="Allow private/loopback targets"
+    ),
     concurrency: int = typer.Option(None, help="Max concurrent requests (default 4)"),
     timeout: float = typer.Option(None, help="Per-request timeout in seconds (default 15)"),
     max_bytes: int = typer.Option(None, help="Max response size (default 5000000)"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Ignore cache reads"),
     only: str = typer.Option(None, help="Run only these check IDs or categories"),
     skip: str = typer.Option(None, help="Skip these check IDs or categories"),
-    policy: str = typer.Option(None, help="How deliberate AI-bot blocks are treated: "
-                                          "report | fail | ignore"),
+    policy: str = typer.Option(
+        None, help="How deliberate AI-bot blocks are treated: report | fail | ignore"
+    ),
     # eval
     eval_mode: str = typer.Option("auto", "--eval", help="auto | true | false"),
     model: str = typer.Option(None, help="Answerer model (LiteLLM format)"),
@@ -170,13 +176,14 @@ def _audit_command(
     trials: int = typer.Option(None, help="Repeated trials (default 3)"),
     top_k: int = typer.Option(None, help="Chunks retrieved per question (default 5)"),
     facts: str = typer.Option(None, help="Facts file (YAML) used as ground truth"),
-    dry_run: bool = typer.Option(False, "--dry-run",
-                                 help="Print estimated tokens and cost; make no LLM calls"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print estimated tokens and cost; make no LLM calls"
+    ),
     max_cost: float = typer.Option(None, help="Abort before exceeding this estimated cost"),
-    fail_under_eval_margin: float = typer.Option(None,
-                                                  help="Do not gate on a CI wider than this"),
-    strict_eval: bool = typer.Option(False, "--strict-eval",
-                                     help="Fail on a threshold even on a wide CI"),
+    fail_under_eval_margin: float = typer.Option(None, help="Do not gate on a CI wider than this"),
+    strict_eval: bool = typer.Option(
+        False, "--strict-eval", help="Fail on a threshold even on a wide CI"
+    ),
 ) -> None:
     """Audit a URL. Works with no API key; the eval runs when a key is present."""
     formats = [f.strip().lower() for f in (format or ["terminal"])]
@@ -185,12 +192,18 @@ def _audit_command(
             _err(f"Unknown format {fmt!r}; choose from {', '.join(report_mod.FORMATS)}")
             raise typer.Exit(EXIT_USAGE)
     if questions is not None and questions > 200:
-        _err("--questions is capped at 200; a larger sample costs more without "
-             "resolving more (EVALS §4.2)")
+        _err(
+            "--questions is capped at 200; a larger sample costs more without "
+            "resolving more (EVALS §4.2)"
+        )
         raise typer.Exit(EXIT_USAGE)
 
     overrides: dict[str, Any] = {
-        "audit": {}, "fetch": {}, "eval": {}, "render": render, "dry_run": dry_run,
+        "audit": {},
+        "fetch": {},
+        "eval": {},
+        "render": render,
+        "dry_run": dry_run,
     }
     if max_pages is not None:
         overrides["audit"]["max_pages"] = max_pages
@@ -216,12 +229,18 @@ def _audit_command(
     if allow_private:
         overrides["fetch"]["allow_private"] = True
     overrides["eval"]["enabled"] = eval_mode
-    for key, value in (("model", model), ("judge_model", judge_model),
-                       ("questions", questions), ("trials", trials), ("top_k", top_k),
-                       ("eval_pages", eval_pages),
-                       ("fail_under_eval", fail_under_eval),
-                       ("fail_under_eval_margin", fail_under_eval_margin),
-                       ("max_cost", max_cost), ("facts", facts)):
+    for key, value in (
+        ("model", model),
+        ("judge_model", judge_model),
+        ("questions", questions),
+        ("trials", trials),
+        ("top_k", top_k),
+        ("eval_pages", eval_pages),
+        ("fail_under_eval", fail_under_eval),
+        ("fail_under_eval_margin", fail_under_eval_margin),
+        ("max_cost", max_cost),
+        ("facts", facts),
+    ):
         if value is not None:
             overrides["eval"][key] = value
     overrides["eval"]["strict_eval"] = strict_eval or None
@@ -235,9 +254,7 @@ def _audit_command(
 
     cache = Cache(config.cache_dir)
     try:
-        state = asyncio.run(
-            audit(config, url, cache=cache, use_cache=not no_cache)
-        )
+        state = asyncio.run(audit(config, url, cache=cache, use_cache=not no_cache))
     except (InvalidUrl, UnknownCheck, eval_engine.EvalConfigError) as exc:
         _err(str(exc))
         raise typer.Exit(EXIT_USAGE) from exc
@@ -275,20 +292,26 @@ def _audit_command(
 
     # Threshold decisions last, so the report is always printed first.
     if config.audit.fail_under is not None and report.score.overall < config.audit.fail_under:
-        _err(f"deterministic score {report.score.overall:g} is below "
-             f"--fail-under {config.audit.fail_under:g}")
+        _err(
+            f"deterministic score {report.score.overall:g} is below "
+            f"--fail-under {config.audit.fail_under:g}"
+        )
         raise typer.Exit(EXIT_THRESHOLD)
     if config.eval.fail_under_eval is not None and eval_result is not None:
         should_fail, note = eval_engine.decide_threshold(
-            eval_result, fail_under=config.eval.fail_under_eval,
-            margin=config.eval.fail_under_eval_margin, strict=config.eval.strict_eval,
+            eval_result,
+            fail_under=config.eval.fail_under_eval,
+            margin=config.eval.fail_under_eval_margin,
+            strict=config.eval.strict_eval,
         )
         if note:
             _note(note)
         if should_fail:
             mean = eval_result.answerability.get("mean", 0.0)
-            _err(f"answerability {mean:.1f} is below --fail-under-eval "
-                 f"{config.eval.fail_under_eval:g}")
+            _err(
+                f"answerability {mean:.1f} is below --fail-under-eval "
+                f"{config.eval.fail_under_eval:g}"
+            )
             raise typer.Exit(EXIT_THRESHOLD)
     elif config.eval.fail_under_eval is not None:
         _note(
@@ -298,8 +321,9 @@ def _audit_command(
     raise typer.Exit(EXIT_OK)
 
 
-def _maybe_eval(config: Any, state: Any, cache: Cache,
-                *, use_cache: bool) -> tuple[Any, str | None, list[str]]:
+def _maybe_eval(
+    config: Any, state: Any, cache: Cache, *, use_cache: bool
+) -> tuple[Any, str | None, list[str]]:
     """Run the eval when it should, and explain it plainly when it should not.
 
     The eval is the headline, so it defaults to auto: run it when a key is
@@ -310,11 +334,13 @@ def _maybe_eval(config: Any, state: Any, cache: Cache,
         return None, "disabled with --eval false", notes
 
     if config.eval.enabled == "auto" and not has_provider_key():
-        return (None,
-                "no LLM key found, so the eval did not run. Set OPENAI_API_KEY (or "
-                "another provider's key) to include it, or pass --facts with a facts "
-                "file. The deterministic checks above need no key.",
-                notes)
+        return (
+            None,
+            "no LLM key found, so the eval did not run. Set OPENAI_API_KEY (or "
+            "another provider's key) to include it, or pass --facts with a facts "
+            "file. The deterministic checks above need no key.",
+            notes,
+        )
 
     corpora = build_corpora(state, config.eval.eval_pages)
     rendered_available = bool(corpora)
@@ -331,7 +357,8 @@ def _maybe_eval(config: Any, state: Any, cache: Cache,
             return None, str(exc), notes
 
     plan = eval_engine.plan(
-        config.eval, corpora,
+        config.eval,
+        corpora,
         facts_questions=len(facts_file.facts) if facts_file else None,
         rendered_available=rendered_available,
     )
@@ -347,8 +374,14 @@ def _maybe_eval(config: Any, state: Any, cache: Cache,
     except CostLimitExceeded:
         raise
 
-    outcome = eval_engine.run(config.eval, corpora, cache=cache, facts=facts_file,
-                              rendered_available=rendered_available, use_cache=use_cache)
+    outcome = eval_engine.run(
+        config.eval,
+        corpora,
+        cache=cache,
+        facts=facts_file,
+        rendered_available=rendered_available,
+        use_cache=use_cache,
+    )
     return outcome.result, None, notes
 
 
@@ -378,8 +411,10 @@ def init(
     emit("Next:")
     emit(f"  geoctl audit <your-url> --facts {facts_path}")
     emit("")
-    emit("A facts file is the strongest ground truth for the eval and costs no "
-              "generation call (ADR-014). Edit it with questions a real user would ask.")
+    emit(
+        "A facts file is the strongest ground truth for the eval and costs no "
+        "generation call (ADR-014). Edit it with questions a real user would ask."
+    )
     raise typer.Exit(EXIT_OK)
 
 
@@ -423,8 +458,7 @@ def cache_clear(
     raise typer.Exit(EXIT_OK)
 
 
-telemetry_app = typer.Typer(help="Control opt-in anonymous usage stats.",
-                            no_args_is_help=True)
+telemetry_app = typer.Typer(help="Control opt-in anonymous usage stats.", no_args_is_help=True)
 app.add_typer(telemetry_app, name="telemetry")
 
 
@@ -454,8 +488,10 @@ def telemetry_enable() -> None:
     _write_telemetry_config(True)
     emit("Telemetry enabled.")
     emit(f"install_id: {install_id}")
-    emit("Never sent: URLs, domains, page content, questions, prompts, model output, "
-              "keys, or file paths.")
+    emit(
+        "Never sent: URLs, domains, page content, questions, prompts, model output, "
+        "keys, or file paths."
+    )
     emit("See exactly what is sent: geoctl telemetry show")
     emit("Turn it off any time: geoctl telemetry disable   (or DO_NOT_TRACK=1)")
     raise typer.Exit(EXIT_OK)
@@ -466,8 +502,10 @@ def telemetry_disable() -> None:
     """Opt out, and rotate the install ID."""
     _write_telemetry_config(False)
     telemetry_mod.rotate_install_id()
-    emit("Telemetry disabled. The install ID was rotated, so events collected under "
-              "the old one can no longer be linked.")
+    emit(
+        "Telemetry disabled. The install ID was rotated, so events collected under "
+        "the old one can no longer be linked."
+    )
     raise typer.Exit(EXIT_OK)
 
 
@@ -478,8 +516,10 @@ def telemetry_show() -> None:
     for name in sorted(telemetry_mod.ALLOWED_FIELDS):
         emit(f"  {name}")
     emit("")
-    emit("Never collected: URLs, hostnames, page content, facts files, questions, "
-              "answers, prompts, model output, API keys, file paths, config contents.")
+    emit(
+        "Never collected: URLs, hostnames, page content, facts files, questions, "
+        "answers, prompts, model output, API keys, file paths, config contents."
+    )
     emit("")
     emit("Example payload:")
     emit(telemetry_mod.sample_payload())
@@ -533,8 +573,9 @@ def _write_telemetry_config(enabled: bool) -> None:
 
 @app.command()
 def doctor(
-    test_keys: bool = typer.Option(False, "--test-keys",
-                                    help="Make one tiny call to verify each key is valid"),
+    test_keys: bool = typer.Option(
+        False, "--test-keys", help="Make one tiny call to verify each key is valid"
+    ),
 ) -> None:
     """Check Python version, extras, cache, network, and key configuration."""
     problems: list[str] = []
@@ -608,8 +649,9 @@ def _test_keys(keys: list[str]) -> list[str]:
 
 @app.command("schema")
 def schema_command(
-    output: str = typer.Option(None, "--output", "-o",
-                               help="Write the schema here instead of stdout"),
+    output: str = typer.Option(
+        None, "--output", "-o", help="Write the schema here instead of stdout"
+    ),
 ) -> None:
     """Print the JSON Schema for the report, generated from the models."""
     text = report_mod.json_report.schema_json()

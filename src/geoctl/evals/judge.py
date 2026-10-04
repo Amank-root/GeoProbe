@@ -107,14 +107,14 @@ def parse(raw: str, *, candidate_abstained: bool = False) -> Judgement:
     return Judgement(verdict=verdict, rationale=rationale)
 
 
-def judge(llm: object, question: str, reference: str, candidate: str,
-          *, abstained: bool = False) -> Judgement:
+def judge(
+    llm: object, question: str, reference: str, candidate: str, *, abstained: bool = False
+) -> Judgement:
     if candidate.strip().upper() == NOT_FOUND:
         return Judgement(verdict=ABSTAINED, rationale="candidate reported not found")
     prompt = build_prompt(question, reference, candidate)
     try:
         raw = llm.complete(prompt, system=JUDGE_SYSTEM, max_tokens=200, expect_json=True)  # type: ignore[attr-defined]
     except Exception as exc:
-        return Judgement(verdict=ABSTAINED,
-                         rationale=f"judge error: {type(exc).__name__}: {exc}")
+        return Judgement(verdict=ABSTAINED, rationale=f"judge error: {type(exc).__name__}: {exc}")
     return parse(raw, candidate_abstained=abstained)

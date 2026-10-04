@@ -85,8 +85,9 @@ def normalize_url(raw: str) -> str:
     return url
 
 
-async def audit(config: Config, url: str, *, cache: Cache | None = None,
-                use_cache: bool = True) -> AuditState:
+async def audit(
+    config: Config, url: str, *, cache: Cache | None = None, use_cache: bool = True
+) -> AuditState:
     """Fetch, extract, and check. Never raises for a network problem."""
     from .fetch.ssrf import BlockedTarget as SSRFBlocked
 
@@ -105,8 +106,9 @@ async def audit(config: Config, url: str, *, cache: Cache | None = None,
             use_cache=use_cache,
         )
         bots = resolve(config.audit.bots)
-        ctx = await _gather(client, start_url, config, bots, cache=cache, use_cache=use_cache,
-                            state=state)
+        ctx = await _gather(
+            client, start_url, config, bots, cache=cache, use_cache=use_cache, state=state
+        )
     except SSRFBlocked as exc:
         raise BlockedTarget(str(exc)) from exc
 
@@ -120,8 +122,16 @@ async def audit(config: Config, url: str, *, cache: Cache | None = None,
     return state
 
 
-async def _gather(client: FetchClient, start_url: str, config: Config, bots: list,
-                  *, cache: Cache | None, use_cache: bool, state: AuditState) -> AuditContext:
+async def _gather(
+    client: FetchClient,
+    start_url: str,
+    config: Config,
+    bots: list,
+    *,
+    cache: Cache | None,
+    use_cache: bool,
+    state: AuditState,
+) -> AuditContext:
     ctx = AuditContext(
         start_url=start_url,
         final_url=start_url,
@@ -136,9 +146,14 @@ async def _gather(client: FetchClient, start_url: str, config: Config, bots: lis
     if r_fetch.ok and r_fetch.body:
         robots_text = r_fetch.body.decode("utf-8", "replace")
     elif r_fetch.status not in (404, 410, None):
-        state.errors.append(RunError(code="ROBOTS_FETCH", severity="warning",
-                                     message=f"Could not read robots.txt ({r_fetch.error})",
-                                     url=r_url))
+        state.errors.append(
+            RunError(
+                code="ROBOTS_FETCH",
+                severity="warning",
+                message=f"Could not read robots.txt ({r_fetch.error})",
+                url=r_url,
+            )
+        )
     ctx.robots = evaluate_all(
         robots_text,
         urlparse(start_url).path or "/",
@@ -151,9 +166,7 @@ async def _gather(client: FetchClient, start_url: str, config: Config, bots: lis
     found_urls: list[str] = []
     for candidate in sitemap_mod.candidate_urls(start_url, ctx.robots.sitemaps):
         fetch = await client.fetch(candidate, bot="sitemap")
-        if not sitemap_mod.looks_like_sitemap(
-            fetch.body, fetch.headers.get("content-type")
-        ):
+        if not sitemap_mod.looks_like_sitemap(fetch.body, fetch.headers.get("content-type")):
             continue
         found_urls.append(candidate)
         parsed_sitemaps.append(sitemap_mod.parse_sitemap(fetch.body or b""))
@@ -174,9 +187,7 @@ async def _gather(client: FetchClient, start_url: str, config: Config, bots: lis
     if all_entries:
         page_urls.extend(
             u
-            for u in sitemap_mod.sample_urls(
-                all_entries, start_url, config.audit.max_pages
-            )
+            for u in sitemap_mod.sample_urls(all_entries, start_url, config.audit.max_pages)
             if u != start_url
         )
     page_urls = page_urls[: config.audit.max_pages]
@@ -197,8 +208,12 @@ async def _gather(client: FetchClient, start_url: str, config: Config, bots: lis
             if "private or reserved address" in reason or "Blocked redirect" in reason:
                 raise BlockedTarget(reason)
             state.errors.append(
-                RunError(code="FETCH_FAILED", severity="error",
-                         message=f"Could not fetch the page: {reason}", url=page_url)
+                RunError(
+                    code="FETCH_FAILED",
+                    severity="error",
+                    message=f"Could not fetch the page: {reason}",
+                    url=page_url,
+                )
             )
         bundle = build_bundle(page_url, lens, cache=cache, use_cache=use_cache)
         ctx.pages.append(bundle)
@@ -222,8 +237,7 @@ async def _gather(client: FetchClient, start_url: str, config: Config, bots: lis
     return ctx
 
 
-async def _attach_rendered(ctx: AuditContext, page_urls: list[str],
-                           state: AuditState) -> None:
+async def _attach_rendered(ctx: AuditContext, page_urls: list[str], state: AuditState) -> None:
     """Add JS-rendered views. Playwright is an extra, so absence is not an error."""
     from .extract.view import add_rendered_view
     from .fetch import render as render_mod
@@ -234,8 +248,7 @@ async def _attach_rendered(ctx: AuditContext, page_urls: list[str],
             "`pip install geoctl[render]` and `playwright install chromium`."
         )
         state.errors.append(
-            RunError(code="RENDER_UNAVAILABLE", severity="warning",
-                     message=state.render_error)
+            RunError(code="RENDER_UNAVAILABLE", severity="warning", message=state.render_error)
         )
         return
 
@@ -246,13 +259,22 @@ async def _attach_rendered(ctx: AuditContext, page_urls: list[str],
             continue
         if result.error or result.html is None:
             state.errors.append(
-                RunError(code="RENDER_FAILED", severity="warning",
-                         message=f"JS rendering failed: {result.error}", url=result.url)
+                RunError(
+                    code="RENDER_FAILED",
+                    severity="warning",
+                    message=f"JS rendering failed: {result.error}",
+                    url=result.url,
+                )
             )
             state.render_error = state.render_error or result.error
             continue
-        pseudo = FetchResult(url=result.url, final_url=result.url, bot="__rendered__",
-                             status=result.status, body=result.html)
+        pseudo = FetchResult(
+            url=result.url,
+            final_url=result.url,
+            bot="__rendered__",
+            status=result.status,
+            body=result.html,
+        )
         add_rendered_view(bundle, result.html, lens="rendered")
         ctx.rendered[result.url] = pseudo
 
@@ -270,9 +292,7 @@ def build_report(state: AuditState, config: Config, *, eval_result=None) -> Audi
                 PageSummary(
                     url=bundle.final_url,
                     status_by_bot={name: f.status for name, f in bundle.fetches.items()},
-                    text_chars={
-                        name: v.text_chars for name, v in bundle.views.items()
-                    }
+                    text_chars={name: v.text_chars for name, v in bundle.views.items()}
                     | ({"browser-nojs": view.text_chars} if view else {}),
                     title=bundle.title,
                     h1_count=len(bundle.structure.h1_texts) if bundle.structure else 0,

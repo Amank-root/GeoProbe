@@ -89,8 +89,7 @@ def plan(
     chunks = 0
     whole_page = False
     for text in texts:
-        prepared, _ = retrieval_mod.prepare(text, top_k=config.top_k,
-                                             embed_fn=None)
+        prepared, _ = retrieval_mod.prepare(text, top_k=config.top_k, embed_fn=None)
         chunks = max(chunks, prepared.chunk_count)
         whole_page = whole_page or prepared.mode == "whole_page"
 
@@ -114,8 +113,9 @@ def plan(
             "crawler view itself, which is circular. This run would be labelled "
             "low confidence and must not gate CI (ADR-014)."
         )
-    return EvalPlan(estimate=estimate, pages=[c.url for c in corpora],
-                    questions_per_page=per_page, note=note)
+    return EvalPlan(
+        estimate=estimate, pages=[c.url for c in corpora], questions_per_page=per_page, note=note
+    )
 
 
 def run(
@@ -160,8 +160,13 @@ def run(
             continue
 
         page_result = runner_mod.run_page(
-            answerer, judge, corpus, question_set.questions,
-            trials=config.trials, top_k=config.top_k, embed_fn=embed_fn,
+            answerer,
+            judge,
+            corpus,
+            question_set.questions,
+            trials=config.trials,
+            top_k=config.top_k,
+            embed_fn=embed_fn,
             embedding_model=config.embedding_model or retrieval_mod.DEFAULT_EMBEDDING,
         )
         page_results.append(page_result)
@@ -218,21 +223,25 @@ def _questions_for(
         page_filter = facts.facts[0].page if facts.facts else None
         selected = q_mod.questions_from_facts(facts, site)
         if page_filter:
-            filtered = [q for q in selected.questions
-                        if q.page is None or _same_page(q.page, page_filter)]
+            filtered = [
+                q for q in selected.questions if q.page is None or _same_page(q.page, page_filter)
+            ]
             if filtered:
-                selected = q_mod.QuestionSet(questions=filtered,
-                                             ground_truth=selected.ground_truth,
-                                             source_pages=selected.source_pages)
+                selected = q_mod.QuestionSet(
+                    questions=filtered,
+                    ground_truth=selected.ground_truth,
+                    source_pages=selected.source_pages,
+                )
         return selected
 
     ground_truth_text = corpus.ground_truth_text or corpus.crawler_text
-    generated = q_mod.generate(
-        answerer, ground_truth_text, corpus.url, count=config.questions
-    )
+    generated = q_mod.generate(answerer, ground_truth_text, corpus.url, count=config.questions)
     tier = "rendered" if corpus.ground_truth_text.strip() else "crawler_only"
-    return q_mod.QuestionSet(questions=generated, ground_truth=tier,  # type: ignore[arg-type]
-                             source_pages=[corpus.url])
+    return q_mod.QuestionSet(
+        questions=generated,
+        ground_truth=tier,  # type: ignore[arg-type]
+        source_pages=[corpus.url],
+    )
 
 
 def _same_page(a: str, b: str) -> bool:

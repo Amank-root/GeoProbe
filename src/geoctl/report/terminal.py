@@ -24,9 +24,7 @@ STATUS_STYLE = {
 }
 
 # The project's honesty commitment, printed in every terminal report.
-DISCLAIMER = (
-    "Measures AI readiness — reach, read, answerability. Not citations or rankings."
-)
+DISCLAIMER = "Measures AI readiness — reach, read, answerability. Not citations or rankings."
 
 
 def bar(points: float, maximum: float, width: int = 22) -> str:
@@ -70,8 +68,14 @@ def _render_to(report: AuditReport, console: Console) -> None:
     console.print()
     headline = Text.assemble(
         ("Deterministic score  ", "bold"),
-        (f"{score.overall:g}", "bold green" if score.overall >= 70 else
-         "bold yellow" if score.overall >= 40 else "bold red"),
+        (
+            f"{score.overall:g}",
+            "bold green"
+            if score.overall >= 70
+            else "bold yellow"
+            if score.overall >= 40
+            else "bold red",
+        ),
         (f" / {score.max:g}", "dim"),
     )
     console.print(headline)
@@ -112,9 +116,7 @@ def _render_to(report: AuditReport, console: Console) -> None:
 
     console.print()
     console.print(Text(DISCLAIMER, "dim italic"))
-    console.print(
-        Text("Full report: --format json | --format markdown", "dim")
-    )
+    console.print(Text("Full report: --format json | --format markdown", "dim"))
     console.print()
 
 
@@ -138,8 +140,11 @@ def _findings_group(findings: list[CheckResult]) -> Group:
         if check.fix:
             body.append("\nFix: ", style="bold green")
             body.append(check.fix.summary)
-        parts.append(Panel(body, title=label, border_style=STATUS_STYLE.get(check.status, ""),
-                           padding=(0, 1)))
+        parts.append(
+            Panel(
+                body, title=label, border_style=STATUS_STYLE.get(check.status, ""), padding=(0, 1)
+            )
+        )
     return Group(*parts)
 
 

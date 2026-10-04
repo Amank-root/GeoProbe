@@ -86,19 +86,37 @@ def chunk_text(
         if approx_tokens(block_text) > target_tokens:
             # Flush, then split an oversized paragraph on sentence boundaries.
             if current:
-                chunks.append(Chunk(text="\n\n".join(current), index=len(chunks),
-                                    heading_path=heading, tokens=approx_tokens(" ".join(current))))
+                chunks.append(
+                    Chunk(
+                        text="\n\n".join(current),
+                        index=len(chunks),
+                        heading_path=heading,
+                        tokens=approx_tokens(" ".join(current)),
+                    )
+                )
                 current, current_len = [], 0
             for piece in _split_long(block_text, target_tokens):
                 heading = block_heading or heading
-                chunks.append(Chunk(text=piece, index=len(chunks), heading_path=heading,
-                                    tokens=approx_tokens(piece)))
+                chunks.append(
+                    Chunk(
+                        text=piece,
+                        index=len(chunks),
+                        heading_path=heading,
+                        tokens=approx_tokens(piece),
+                    )
+                )
             continue
 
         if current_len + approx_tokens(block_text) > target_tokens and current:
             joined = "\n\n".join(current)
-            chunks.append(Chunk(text=joined, index=len(chunks), heading_path=heading,
-                                tokens=approx_tokens(joined)))
+            chunks.append(
+                Chunk(
+                    text=joined,
+                    index=len(chunks),
+                    heading_path=heading,
+                    tokens=approx_tokens(joined),
+                )
+            )
             current = _overlap_tail(current, overlap_pct, target_tokens)
             current_len = approx_tokens(" ".join(current))
         if block_heading:
@@ -108,8 +126,11 @@ def chunk_text(
 
     if current:
         joined = "\n\n".join(current)
-        chunks.append(Chunk(text=joined, index=len(chunks), heading_path=heading,
-                            tokens=approx_tokens(joined)))
+        chunks.append(
+            Chunk(
+                text=joined, index=len(chunks), heading_path=heading, tokens=approx_tokens(joined)
+            )
+        )
     return chunks
 
 

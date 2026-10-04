@@ -80,9 +80,7 @@ def test_a_key_in_the_config_file_is_refused(tmp_path, monkeypatch):
 
 def test_a_toml_pointing_at_an_env_var_is_allowed(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "geoctl.toml").write_text(
-        'token = "$OPENAI_API_KEY"\n', encoding="utf-8"
-    )
+    (tmp_path / "geoctl.toml").write_text('token = "$OPENAI_API_KEY"\n', encoding="utf-8")
     load_config()  # must not raise
 
 
@@ -152,8 +150,18 @@ def test_cache_reports_its_directory(tmp_path):
 
 @pytest.mark.parametrize(
     "ip",
-    ["127.0.0.1", "10.1.2.3", "192.168.1.1", "172.16.5.5", "169.254.169.254",
-     "0.0.0.0", "100.64.0.1", "::1", "fe80::1", "fc00::1"],
+    [
+        "127.0.0.1",
+        "10.1.2.3",
+        "192.168.1.1",
+        "172.16.5.5",
+        "169.254.169.254",
+        "0.0.0.0",
+        "100.64.0.1",
+        "::1",
+        "fe80::1",
+        "fc00::1",
+    ],
 )
 def test_private_and_reserved_addresses_are_blocked(ip):
     assert is_blocked_ip(ip)
@@ -222,8 +230,7 @@ def test_every_bot_declares_a_purpose_and_docs_url():
 
 
 def _check(check_id: str, status: CheckStatus, weight: int, points: float = 0.0) -> CheckResult:
-    return CheckResult(id=check_id, category="access", status=status, weight=weight,
-                       points=points)
+    return CheckResult(id=check_id, category="access", status=status, weight=weight, points=points)
 
 
 def test_score_is_bounded_zero_to_one_hundred():
@@ -278,8 +285,12 @@ def test_top_findings_leads_with_failures():
 
 def test_payload_contains_only_allow_listed_fields():
     event = telemetry.Event(
-        command="audit", tool_version="0.1.0", install_id="abc",
-        flags_used=["--eval", "--format=json"], pages=10, duration_ms=4200,
+        command="audit",
+        tool_version="0.1.0",
+        install_id="abc",
+        flags_used=["--eval", "--format=json"],
+        pages=10,
+        duration_ms=4200,
     )
     payload = event.payload()
     assert set(payload) <= telemetry.ALLOWED_FIELDS

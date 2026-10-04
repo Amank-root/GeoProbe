@@ -46,9 +46,9 @@ def main() -> int:
         print(f"golden report is missing required fields: {sorted(missing)}")
         return 1
 
-    if report.get("schema_version") != schema.get("properties", {}).get(
-        "schema_version", {}
-    ).get("default"):
+    if report.get("schema_version") != schema.get("properties", {}).get("schema_version", {}).get(
+        "default"
+    ):
         print("golden schema_version disagrees with the schema default")
         return 1
 

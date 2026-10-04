@@ -70,8 +70,10 @@ def main() -> int:
             yaml.safe_dump(document, sort_keys=True), encoding="utf-8"
         )
         failures = [k for k, v in statuses.items() if v == "fail"]
-        print(f"{name:32} score={report.score.overall:6.1f} "
-              f"known_good={known_good!s:5} fails={len(failures)} {failures[:4]}")
+        print(
+            f"{name:32} score={report.score.overall:6.1f} "
+            f"known_good={known_good!s:5} fails={len(failures)} {failures[:4]}"
+        )
 
     print(f"\nWrote {len(FIXTURES)} expectation files to {OUT.relative_to(ROOT)}")
     print("Review them against docs/CHECKS.md before treating them as correct.")
