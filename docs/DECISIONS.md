@@ -99,11 +99,14 @@ The `-only` suffix matters: it does not permit relicensing the project under GPL
   enforced by copyright, and it is the strongest available protection short of patent or
   trademark.
 - **It does not stop a competitor.** Someone may write an independent implementation of the
-  same ideas without licensing any of this code, and may brand it differently. Only the
-  *name* and *trademark* prevent that — which is why the next point is not optional.
-- **Trademark the name separately.** `geoctl` and the logo should be registered. The licence
-  grants rights in the code, not the name, so a fork must rename — which reduces consumer
-  confusion even though it cannot stop the underlying functionality.
+  same ideas without licensing any of this code, and may brand it differently. The next
+  point records the decision taken on that residual risk.
+- **No trademark registration, by decision.** The name is not being trademarked. The
+  licence already forces a fork to rename, and a fork cannot present itself as `geoctl`
+  without misrepresenting its origin — which is the confusion actually worth preventing.
+  Accepting that a distinctively-branded reimplementation can exist is a deliberate trade
+  for not spending maintainer time and money on legal registration. Revisit only if a
+  fork using the name in commerce actually appears.
 - **Adoption cost is real but acceptable.** Some companies avoid AGPL in CI. For an early
   project whose differentiation is an opinionated methodology rather than a library others
   link, this is a reasonable trade. Adoption is mitigated by the tool running as a
@@ -123,6 +126,137 @@ The `-only` suffix matters: it does not permit relicensing the project under GPL
 no-closed-source-forks requirement, and the observation that the hosted tier's defensibility
 rests on service rather than the engine is exactly why the licence is the right tool for the
 *fork* case while the trademark covers the *brand* case.
+
+## ADR-013: robots.txt parsing uses Protego, not urllib.robotparser
+
+**Status:** Accepted
+
+**Context.** Milestone 0 required a spike comparing `urllib.robotparser` (stdlib) against
+Protego on the edge cases ACC-001 depends on: wildcards, `$` end-anchors, rule groups, and
+multiple `User-agent` lines. ACC-001 carries weight 25 and is the second-largest scored
+check, so a parser that silently mis-evaluates rules produces wrong verdicts on exactly the
+signal the report is built around.
+
+**Method.** Seven robots.txt fixtures were parsed with both implementations and evaluated
+over seven paths (`/`, `/public/page`, `/a/file.pdf`, `/private`, `/private/`, `/x/y`,
+`/img.png`), comparing `can_fetch` per bot. Fixtures covered: wildcard extension rules,
+`$` end-anchoring, multi-rule groups, `Allow` overriding `Disallow`, multiple UA groups,
+UA substring matching, and a `*` group overridden by a named bot.
+
+**Result.** 5 disagreements across 49 comparisons — and **every one is a case where the
+stdlib is wrong and Protego is correct:**
+
+| Case | Path | stdlib | Protego | Correct |
+|---|---|---|---|---|
+| `Disallow: /*.pdf` | `/a/file.pdf` | allow | **block** | block |
+| `Disallow: /private$` | `/private` | allow | **block** | block |
+| Multi-rule group | `/img.png` | allow | **block** | block |
+| `Disallow: /` + `Allow: /public` | `/public/page` | block | **allow** | allow |
+| (grouping also correct on `/a/file.pdf`) | | | | |
+
+The stdlib does not implement `*` wildcards, `$` end-anchors, or longest-match `Allow`
+precedence — it treats such patterns as literal path prefixes. For a tool whose entire
+purpose is reporting whether named AI crawlers may access a page, that is disqualifying:
+it would report "allowed" for sites that block crawlers, which is the precise failure the
+product exists to catch.
+
+**Decision.** Use **Protego** for robots.txt parsing and evaluation.
+
+**Consequences.**
+- ACC-001 verdicts are correct on wildcard, `$`, and `Allow`-override rules.
+- Protego also exposes `crawl_delay`, `request_rate`, `sitemaps`, and `visit_time`, which
+  the stdlib does not parse uniformly — useful for polite crawling (ADR-008) and for
+  discovering sitemaps referenced from robots.txt.
+- `protego>=0.3` is already pinned in `pyproject.toml`; no dependency change needed.
+- Protego's API is `can_fetch(url, user_agent)` — **argument order is url first**. This is
+  the opposite of the stdlib's `can_fetch(user_agent, url)` and is an easy source of
+  silent bugs: called with reversed arguments it returns `True` for everything, which looks
+  like "all crawlers allowed" rather than an error. Wrap it in one module
+  (`fetch/robots.py`) exposing a stdlib-ordered signature, and cover it with a test that
+  asserts a known-disallowed path is blocked.
+- Group membership is per-URL in Protego's API, so per-bot evaluation must pass the bot's
+  token as `user_agent` with the full URL as the first argument.
+
+---
+
+## ADR-014: Ground truth for the eval prefers an independent facts file
+
+**Status:** Accepted
+
+**Context.** Milestone 0 included a spike on question-generation quality, with and without
+a user-supplied facts file. The underlying question is circularity: if questions are
+generated from the same text the answerer later sees, nearly every question is answerable
+by construction and the score says nothing about the site.
+
+**Decision.** The eval has three tiers of ground truth, in descending order of strength:
+
+1. **A user-supplied `facts.yaml`** — questions and reference answers written by someone
+   who knows the site, independent of both the crawler view and the rendered view. This is
+   the only tier that is both independent and high-confidence, and it is what
+   `--fail-under-eval` should gate on.
+2. **JS-rendered text** — independent of the no-JS crawler view the answerer sees, so it
+   still measures loss to client-side rendering, but it is *not* independent of the site's
+   own wording.
+3. **The crawler view itself** — circular, therefore always labelled
+   `confidence: low` / `ground_truth: crawler_only`, never used to gate CI, and reported as
+   testing clarity rather than loss.
+
+**Rationale for the ordering.** Tier 1 is strongest because independence is what makes the
+metric meaningful, and because it is hand-written: it cannot be inflated by extraction
+luck. Tier 2 measures one specific failure (content lost to rendering) and is genuinely
+useful for that, but it inherits the site's phrasing, so a question can be unanswerable
+purely because the retriever matched different words than the generator used. Tier 3 is a
+valid smoke test and nothing more.
+
+**Consequences.**
+- `geoprobe init` should write a `facts.yaml` template, and the README should recommend the
+  facts path first — it is both the strongest signal and the cheapest, since it costs no
+  generation call.
+- The docs already say a facts file is "the strongest ground truth available" (CLI_SPEC §4,
+  EVALS §3.1); this ADR makes that ordering normative and gives it a rationale.
+- Because tier-1 questions are independent, low answerability on a facts file is
+  unambiguous evidence about the site. On tier 3 it is not. Reports must state which tier
+  produced a score, and `--fail-under-eval` must refuse to gate on tier 3.
+- An open question worth a future ADR: whether to ship built-in question sets per site type
+  (docs, SaaS landing, e-commerce) — see PRD §14 Q6. Those would be tier 2, not tier 1.
+
+---
+
+## ADR-015: LiteLLM cost figures are reported as estimates, never as billing
+
+**Status:** Accepted
+
+**Context.** Milestone 0 required verifying LiteLLM's cost/usage reporting accuracy across
+two providers. This cannot be concluded without provider accounts and a funded API key, and
+it cannot be concluded by a dry run: `--dry-run` deliberately makes **no** API calls, so it
+exercises the estimator rather than the library's post-call accounting.
+
+So the accuracy question is not answerable at this milestone, and pretending otherwise would
+put an unverified number into every report.
+
+**Decision.** Treat all cost figures as **estimates, and say so in the output**. Specifically:
+
+- Every cost value is an estimate derived from token counts and LiteLLM's price table. It is
+  never presented as an amount billed or charged.
+- `--dry-run` is documented and implemented as an estimate from page sizes, chunk counts,
+  and settings — explicitly *not* a prediction of what a subsequent real run will bill,
+  since real runs add retry overhead, cache-miss variance, and provider-side rounding.
+- `--max-cost` is a guardrail against surprise spend, not a billing guarantee, and the docs
+  must not imply it caps the actual charge.
+- The accuracy spike is **deferred**, not dropped: it requires two funded provider accounts
+  and belongs in Milestone 1 once an eval run exists to measure. It stays on the Milestone 0
+  checklist as explicitly blocked, with the reason recorded, rather than being quietly
+  checked off.
+
+**Consequences.**
+- Report wording is "estimated cost", never "cost" or "spent" (OUTPUT_SCHEMA already uses
+  `estimated_cost_usd`; the terminal report must match).
+- Price-table drift is a known failure mode: LiteLLM's prices can lag provider changes, so
+  an estimate can be wrong even when token accounting is right. Users are told to treat it as
+  an order of magnitude.
+- No CI or test may assert an absolute cost figure, since that would encode a
+  time-sensitive price table. Tests assert token counts and call counts instead.
+- Milestone 1 gains a task: verify cost reporting against two providers' real invoices.
 
 ## ADR-005: Telemetry is opt-in, allow-list only
 

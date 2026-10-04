@@ -89,6 +89,7 @@ number, so you can always see which signal moved:
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | Telemetry design and public policy |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones and exit criteria |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | ADRs |
+| [docs/FIXTURES.md](docs/FIXTURES.md) | Fixture-site coverage spec for calibration |
 
 ## Privacy and safety
 
@@ -113,9 +114,9 @@ The practical effect: if you fork this and distribute it, or run your modified v
 service, you must offer your source under AGPL-3.0. You cannot take the free CLI, close it,
 and charge for it. That is the point of choosing it over MIT or Apache-2.0.
 
-It does not stop someone reimplementing the same ideas from scratch, or from using the name
-in their trademark sense — [register the name](docs/DECISIONS.md#adr-004-license-is-agpl-30-only)
-if that matters commercially. Reasoning in [ADR-004](docs/DECISIONS.md#adr-004-license-is-agpl-30-only).
+It does not stop someone reimplementing the same ideas from scratch — that is a deliberate,
+accepted limit, and the name is not being trademarked. A fork must rename and cannot pass
+itself off as `geoctl`. Reasoning in [ADR-004](docs/DECISIONS.md#adr-004-license-is-agpl-30-only).
 
 ## Won't do
 
