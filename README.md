@@ -1,7 +1,9 @@
 # geoctl
 
-> **Status: pre-release.** v0.1 is in development. This README describes the intended
-> behavior; the check catalog and scoring are still being calibrated.
+> **Status: v0.1 implemented, weights still provisional.** Every command below works
+> and the test suite runs offline with no API key. The 6 scored checks are calibrated
+> against 38 local fixtures ([docs/CALIBRATION.md](docs/CALIBRATION.md)); the weights
+> are initial values, not a claim about what any AI product rewards.
 
 **geoctl** — *Generative Engine Optimization control*. An open-source CLI that tells you
 whether AI systems can **reach**, **read**, and **correctly answer questions from** your
@@ -46,21 +48,78 @@ pipx install "geoctl[render]"
 
 ## Quickstart
 
+A report with no API key takes well under two minutes:
+
 ```bash
-# Deterministic checks only — no API key needed
 geoctl audit https://example.com
-
-# With the answerability eval (uses your own key, e.g. OPENAI_API_KEY)
-export OPENAI_API_KEY=...
-geoctl audit https://example.com --eval
-
-# Best signal: supply your own facts as ground truth
-geoctl init                               # writes geoctl.toml + facts.yaml
-geoctl audit https://example.com --eval --facts facts.yaml
-
-# Gate CI
-geoctl audit https://example.com --eval --fail-under-eval 70
 ```
+
+```
+geoctl 0.1.0 · https://example.com · 10 pages · 4.2s
+
+Deterministic score  40 / 100
+
+  Access        ███████████░░░░░░░░░░░  35/75
+  Rendering     █░░░░░░░░░░░░░░░░░░░░░░   4/24
+  Discovery     ███████████████████████   1/1
+
+Top findings
+  FAIL  REN-001  Only 9% of page text is present without JavaScript.
+        /pricing: 412 chars before JS vs 4,380 after (render with --render)
+        Fix: server-render or pre-render the pricing content
+
+Measures AI readiness — reach, read, answerability. Not citations or rankings.
+```
+
+Adding the answerability eval, which uses your own key:
+
+```bash
+export OPENAI_API_KEY=...
+geoctl audit https://example.com --eval --judge-model anthropic/claude-sonnet-4-5
+```
+
+The strongest and cheapest eval input is a **facts file** you write yourself — it is
+independent of both the crawler view and the rendered view, so it cannot be inflated
+by extraction luck ([ADR-014](docs/DECISIONS.md)):
+
+```bash
+geoctl init                                        # writes geoctl.toml + facts.yaml
+$EDITOR facts.yaml
+geoctl audit https://example.com --facts facts.yaml
+```
+
+Cost control, because at the defaults this is not a free operation:
+
+```bash
+geoctl audit https://example.com --dry-run          # estimate only, no API calls
+geoctl audit https://example.com --max-cost 0.50   # abort before exceeding
+```
+
+Gate CI. `--fail-under` is deterministic and always applicable; `--fail-under-eval`
+needs an eval and refuses to gate on noise:
+
+```bash
+geoctl audit https://example.com --fail-under 70
+geoctl audit https://example.com --facts facts.yaml --fail-under-eval 70
+```
+
+Other useful commands:
+
+```bash
+geoctl audit https://example.com --format json --output report.json
+geoctl audit https://example.com --render           # needs geoctl[render]
+geoctl doctor                                     # check keys, cache, extras
+geoctl telemetry show                              # exactly what would be sent
+geoctl cache stats
+```
+
+One thing worth knowing before you gate on the eval: at the default 50 questions the
+95% confidence interval is about **±14 points**, so the threshold gate defaults to a
+±15 margin and will decline to fail on a wide interval. To gate more tightly, raise
+`--questions`; lowering the margin just fails on noise. The arithmetic is in
+[docs/EVALS.md §4.2](docs/EVALS.md#42-resolution-why-the-default-is-50-questions-not-10).
+
+Full flag reference: [docs/CLI_SPEC.md](docs/CLI_SPEC.md).
 
 ## What it does and does not measure
 
@@ -90,6 +149,11 @@ number, so you can always see which signal moved:
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones and exit criteria |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | ADRs |
 | [docs/FIXTURES.md](docs/FIXTURES.md) | Fixture-site coverage spec for calibration |
+| [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | How the numbers are produced, and their limits |
+| [docs/CALIBRATION.md](docs/CALIBRATION.md) | Latest per-check false-positive run |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
+
+Docs site: `mkdocs serve` (see [mkdocs.yml](mkdocs.yml)).
 
 ## Privacy and safety
 
@@ -99,6 +163,8 @@ number, so you can always see which signal moved:
 - Simulated bot requests send an `X-Geoctl-Test: 1` header. Intended for sites you
   own or have permission to test.
 - Private and loopback addresses are blocked unless you pass `--allow-private`.
+- API keys are read from the environment only. `geoctl` refuses to start if it finds
+  key-like values in `geoctl.toml`, so a credential cannot be committed by accident.
 
 ## Open core
 
@@ -127,6 +193,7 @@ there is a table of ways to help ranked by effort, from reporting a false positi
 ## Won't do
 
 - No guarantees of citations or rankings.
+- No scores presented as comparable across different LLM models.
 - No stealth crawling, IP rotation, or evading bot protection.
 - No collection of site content by telemetry.
 - No feature moved from OSS to paid.
