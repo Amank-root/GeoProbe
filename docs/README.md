@@ -20,6 +20,7 @@
 | 7 | [TELEMETRY.md](TELEMETRY.md) | Opt-in telemetry design and draft public policy |
 | 8 | [ROADMAP.md](ROADMAP.md) | Milestones, deliverables, exit criteria |
 | 9 | [DECISIONS.md](DECISIONS.md) | ADRs: language, license, telemetry, open-core boundary, etc. |
+| 10 | [FIXTURES.md](FIXTURES.md) | Fixture-site coverage spec for calibration and CI |
 
 ## One-paragraph pitch
 

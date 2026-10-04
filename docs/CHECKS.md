@@ -342,7 +342,10 @@ fixtures live alongside the implementation in `src/geoctl/checks/` and
 Before v0.1 release:
 
 - Assemble 30–50 fixture sites (static, SPA, SSR, docs, blog, e-commerce,
-  WAF-protected) with hand-labeled expected outcomes.
+  WAF-protected) with hand-labeled expected outcomes. Coverage spec and rationale in
+  [FIXTURES.md](FIXTURES.md); fixtures must be self-hosted and offline-capable, both to
+  keep the suite reproducible and to honor the acceptable-use commitment in
+  [ADR-008](DECISIONS.md).
 - Measure false-positive and false-negative rates **per check**, with particular attention
   to the low-weight ones — a weight-1 check that is always wrong is still noise in the
   report even though it barely moves the score.
