@@ -23,7 +23,7 @@
 | 10 | [FIXTURES.md](FIXTURES.md) | Fixture-site coverage spec for calibration and CI |
 | 11 | [METHODOLOGY.md](METHODOLOGY.md) | How the numbers are produced, and precisely what they do not establish |
 | 12 | [CALIBRATION.md](CALIBRATION.md) | Latest per-check false-positive and false-negative run |
-| 13 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute: setup, adding checks and fixtures, expectations |
+| 13 | [CONTRIBUTING.md](https://github.com/Amank-root/GeoProbe/blob/main/CONTRIBUTING.md) | How to contribute: setup, adding checks and fixtures, expectations |
 
 ## One-paragraph pitch
 

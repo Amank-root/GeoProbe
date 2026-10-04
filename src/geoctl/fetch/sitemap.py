@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 from xml.etree import ElementTree
 
@@ -25,7 +25,7 @@ _NS = {
 # lastmod far in the future is a real and common defect: it tells crawlers a page
 # changed when it did not (CHECKS TRU-001).
 _FUTURE_TOLERANCE_DAYS = timedelta(days=2)
-_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 @dataclass
@@ -94,7 +94,7 @@ def is_stale(lastmod: str | None, now: datetime | None = None) -> bool:
     """True when a lastmod is unparseable, epoch-0, or in the future."""
     if not lastmod:
         return False
-    now = now or datetime.now(UTC)
+    now = now or datetime.now(timezone.utc)
     parsed = parse_date(lastmod)
     if parsed is None:
         return True
@@ -125,11 +125,15 @@ def parse_date(value: str | None) -> datetime | None:
             parsed = datetime.strptime(value, pattern)
         except ValueError:
             continue
-        return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+        return (
+            parsed.replace(tzinfo=timezone.utc)
+            if parsed.tzinfo is None
+            else parsed.astimezone(timezone.utc)
+        )
     match = re.match(r"(\d{4})-(\d{2})-(\d{2})", value)
     if match:
         try:
-            return datetime(int(match[1]), int(match[2]), int(match[3]), tzinfo=UTC)
+            return datetime(int(match[1]), int(match[2]), int(match[3]), tzinfo=timezone.utc)
         except ValueError:
             return None
     return None

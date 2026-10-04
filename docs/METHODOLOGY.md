@@ -89,7 +89,7 @@ rather than lowering the margin and failing on noise. See
 
 Every cost in the output is labelled an estimate and never presented as billing.
 LiteLLM's cost reporting has not been verified against provider invoices
-([ADR-015](DECISIONS.md#adr-015-litelm-cost-figures-are-reported-as-estimates-never-as-billing)),
+([ADR-015](DECISIONS.md#adr-015-litellm-cost-figures-are-reported-as-estimates-never-as-billing)),
 so billing accuracy is an open question deferred to a funded-account test.
 `--dry-run` estimates without making any API call.
 

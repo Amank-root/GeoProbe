@@ -6,6 +6,12 @@ absent, so `--render` on a plain install reports low confidence rather than
 crashing.
 """
 
+# The two Playwright imports below are the only unresolvable names in this
+# project: Playwright is an optional extra (ADR-006) and is deliberately absent
+# from the dev and CI environments. Both are guarded by `try/except ImportError`.
+# The suppression is per-file so a missing import anywhere else is still an error.
+# pyright: reportMissingImports=false
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -10,7 +10,7 @@ import re
 import secrets
 import time
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -33,11 +33,11 @@ def ulid(now_ms: int | None = None) -> str:
 
 
 def utc_now() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 def iso_utc(dt: datetime | None = None) -> str:
-    return (dt or utc_now()).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (dt or utc_now()).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def content_hash(*parts: Any) -> str:

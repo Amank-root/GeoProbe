@@ -40,7 +40,9 @@ markdown_extensions:
   - pymdownx.superfences
 
 nav:
-  - Home: index.md
+  # docs_dir is `docs`, so the home page is docs/README.md. Referring to index.md
+  # made `--strict` fail on a file that does not exist.
+  - Home: README.md
   - Method:
       - Answerability eval: EVALS.md
       - Calibration results: CALIBRATION.md
