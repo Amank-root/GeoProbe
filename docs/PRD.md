@@ -1,11 +1,10 @@
-# PRD: geoprobe
+# PRD: geoctl
 
-> **Working name.** `geoprobe` is a placeholder and **cannot be used as-is**: the name is
-> taken on PyPI by a dormant, unrelated seismic-data library, and an operating commercial
-> product with heavily overlapping scope already runs at `geoprobe.ai`. The collision check
-> is complete and the replacement name is open — see
-> [#4](https://github.com/Amank-root/GeoProbe/issues/4). Milestone 1's PyPI release cannot
-> proceed under this name.
+> **Name.** `geoctl` — *Generative Engine Optimization control*. Settled after a collision
+> check found the earlier working name `geoprobe` unusable: taken on PyPI by an unrelated
+> seismic-data library, and in active use by a commercial product at `geoprobe.ai` with
+> heavily overlapping scope. `geoctl` is free on PyPI, npm, and GitHub. See
+> [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 
 | | |
 |---|---|
@@ -17,7 +16,7 @@
 
 ## 1. Summary
 
-`geoprobe` is a command-line tool that takes a website URL and tells you, with evidence, whether AI systems (ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews, and agentic browsers) can **reach**, **read**, and **correctly answer questions from** your content. It then helps you fix what is broken.
+`geoctl` is a command-line tool that takes a website URL and tells you, with evidence, whether AI systems (ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews, and agentic browsers) can **reach**, **read**, and **correctly answer questions from** your content. It then helps you fix what is broken.
 
 It is bring-your-own: the user installs it, supplies their own LLM keys if they want the LLM-based evaluation, runs it locally or in CI, and gets a report. No account, no server.
 
@@ -62,7 +61,7 @@ Two ideas differentiate the product:
 
 | Persona | Need | How they use it |
 |---|---|---|
-| **Indie dev / founder** | "Is my landing page and docs readable by AI?" | `uvx geoprobe audit https://mysite.com` |
+| **Indie dev / founder** | "Is my landing page and docs readable by AI?" | `uvx geoctl audit https://mysite.com` |
 | **Frontend / platform engineer** | Catch regressions on deploy | GitHub Action with `--fail-under` |
 | **Agency / consultant** | Baseline audits for clients | CLI + JSON/Markdown reports |
 | **Docs / DevRel owner** | Make docs quotable by assistants | Answerability eval with a facts file |
@@ -71,7 +70,7 @@ Primary persona for v0.1: **developer who owns the site's code**.
 
 ## 6. Positioning
 
-| Capability | Typical existing tools | geoprobe |
+| Capability | Typical existing tools | geoctl |
 |---|---|---|
 | Artifact checks (robots, sitemap, llms.txt, schema) | ✅ | ✅ (llms.txt deliberately low-weighted) |
 | Per-bot fetch simulation | Some | ✅ (compares bot view to browser view) |
@@ -145,10 +144,10 @@ See [EVALS](EVALS.md) for method and caveats.
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-23 | Config via flags, environment variables, and `geoprobe.toml` (precedence in CLI_SPEC). | P0 |
-| FR-24 | `geoprobe doctor` verifies environment, network, and key configuration. | P1 |
+| FR-23 | Config via flags, environment variables, and `geoctl.toml` (precedence in CLI_SPEC). | P0 |
+| FR-24 | `geoctl doctor` verifies environment, network, and key configuration. | P1 |
 | FR-25 | Telemetry is opt-in per [TELEMETRY](TELEMETRY.md). | P0 |
-| FR-26 | `geoprobe generate llms-txt` and `generate robots` produce starter files from the crawl. | P1 (v0.2 if cut) |
+| FR-26 | `geoctl generate llms-txt` and `generate robots` produce starter files from the crawl. | P1 (v0.2 if cut) |
 
 ## 9. Non-functional requirements
 
@@ -208,7 +207,7 @@ See [DECISIONS](DECISIONS.md) ADR-007.
 | Eval is circular (questions generated from the same text it answers from) | Scores meaningless | Ground truth view differs from crawler view; facts-file option; documented in EVALS |
 | Scores imply guarantees about real AI products | Misleading claims | Plain language in README and reports: measures readiness, not citations |
 | Check catalog drifts as bots and guidance change | Stale advice | Data-driven bot list, versioned check catalog, public changelog |
-| Spoofed bot user-agents used against third-party sites | Ethical / abuse concerns | Document intended use on sites you control; rate limits; honest `X-Geoprobe-Test` header; no stealth |
+| Spoofed bot user-agents used against third-party sites | Ethical / abuse concerns | Document intended use on sites you control; rate limits; honest `X-Geoctl-Test` header; no stealth |
 | LLM costs surprise users | Bad first experience | `--dry-run`, default small question count, cost shown in report |
 | Telemetry backlash | Trust loss | Opt-in, minimal, inspectable, documented |
 | Existing OSS tool adds the same features | Reduced differentiation | Keep focus on eval + code fixes; consider upstream contributions where overlap is high |

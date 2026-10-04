@@ -1,8 +1,8 @@
 # JSON Output Schema
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
-`geoprobe audit --format json` emits one JSON document. This is a public contract: consumers (CI, dashboards, the future hosted service) depend on it.
+`geoctl audit --format json` emits one JSON document. This is a public contract: consumers (CI, dashboards, the future hosted service) depend on it.
 
 ## 1. Versioning rules
 
@@ -10,14 +10,14 @@ Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
 - **Additive changes** (new optional fields) bump the minor version.
 - **Breaking changes** (removing/renaming fields, changing types or meaning) bump the major version and are listed in the changelog.
 - Consumers should ignore unknown fields.
-- The tool publishes a JSON Schema file (`geoprobe.schema.json`) generated from the Pydantic models, and CI verifies that example outputs validate against it.
+- The tool publishes a JSON Schema file (`geoctl.schema.json`) generated from the Pydantic models, and CI verifies that example outputs validate against it.
 
 ## 2. Top-level structure
 
 ```json
 {
   "schema_version": "1.0.0",
-  "tool": { "name": "geoprobe", "version": "0.1.0" },
+  "tool": { "name": "geoctl", "version": "0.1.0" },
   "run": { },
   "target": { },
   "score": { },
@@ -45,7 +45,7 @@ Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
 ```json
 {
   "schema_version": "1.0.0",
-  "tool": { "name": "geoprobe", "version": "0.1.0" },
+  "tool": { "name": "geoctl", "version": "0.1.0" },
   "run": {
     "id": "01J9ZK3Q8V6M2R4T7W1XH5N0AB",
     "started_at": "2026-10-04T10:15:02Z",
@@ -92,7 +92,7 @@ Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
       },
       "fix": {
         "summary": "Server-render or pre-render the pricing content.",
-        "docs_url": "https://github.com/Amank-root/geoprobe/blob/main/docs/CHECKS.md#ren-001-text-available-without-javascript-20",
+        "docs_url": "https://github.com/Amank-root/GeoProbe/blob/main/docs/CHECKS.md#ren-001-text-available-without-javascript-20",
         "machine": null
       }
     },

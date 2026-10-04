@@ -1,6 +1,6 @@
 # Telemetry Policy
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD.
 
 This document is both the internal design and the draft of the public policy that will ship in the README and `docs/telemetry.md`.
 
@@ -23,22 +23,22 @@ The tool crawls websites and (later) reads repositories. Developers are rightly 
 - On first interactive run (stdin and stdout are a TTY, not CI), the tool shows one prompt:
 
   ```
-  Help improve geoprobe? Share anonymous usage stats (commands, version, OS,
-  error types). Never URLs, content, or keys. See what's sent: geoprobe telemetry show
+  Help improve geoctl? Share anonymous usage stats (commands, version, OS,
+  error types). Never URLs, content, or keys. See what's sent: geoctl telemetry show
   Enable? [y/N]
   ```
 
   Default is **No**. The answer is stored in the user config.
-- In non-interactive environments (CI, pipes), no prompt is shown and telemetry is **off** unless `GEOPROBE_TELEMETRY=1` is set explicitly.
-- `geoprobe telemetry enable | disable | status | show` manage it at any time.
+- In non-interactive environments (CI, pipes), no prompt is shown and telemetry is **off** unless `GEOCTL_TELEMETRY=1` is set explicitly.
+- `geoctl telemetry enable | disable | status | show` manage it at any time.
 
 ## 4. Hard off-switches
 
 Telemetry is disabled, regardless of other settings, if any of these hold:
 
 - `DO_NOT_TRACK=1`
-- `GEOPROBE_TELEMETRY=0`
-- Running in a detected CI environment without explicit `GEOPROBE_TELEMETRY=1`
+- `GEOCTL_TELEMETRY=0`
+- Running in a detected CI environment without explicit `GEOCTL_TELEMETRY=1`
 - `[telemetry] enabled = false` in config
 
 ## 5. What is collected
@@ -73,8 +73,8 @@ One event per command invocation, sent asynchronously with a short timeout so it
 
 ## 7. Transparency tooling
 
-- `geoprobe telemetry show` prints the exact JSON that the *last* invocation would send, and a sample for the next.
-- `GEOPROBE_TELEMETRY_DEBUG=1` prints each payload to stderr instead of sending it.
+- `geoctl telemetry show` prints the exact JSON that the *last* invocation would send, and a sample for the next.
+- `GEOCTL_TELEMETRY_DEBUG=1` prints each payload to stderr instead of sending it.
 - The payload schema is versioned and lives in the repo (`telemetry_schema.json`); changes require a changelog entry and, if new fields are added, a note in the release.
 - The receiving endpoint's code (or a precise description of it) is public.
 
@@ -83,7 +83,7 @@ One event per command invocation, sent asynchronously with a short timeout so it
 - **Storage:** analytics store with access limited to maintainers.
 - **Retention:** raw events kept for 12 months, then aggregated; aggregates may be kept indefinitely.
 - **Sharing:** never sold; not shared with third parties except the infrastructure provider that processes events.
-- **Deletion:** because events are keyed only by a random `install_id`, users can request deletion by providing that ID (shown by `geoprobe telemetry status`). Rotating the ID: `geoprobe telemetry disable && geoprobe telemetry enable`.
+- **Deletion:** because events are keyed only by a random `install_id`, users can request deletion by providing that ID (shown by `geoctl telemetry status`). Rotating the ID: `geoctl telemetry disable && geoctl telemetry enable`.
 - **Legal:** the data is designed to be non-personal. Confirm applicable requirements (e.g. GDPR treatment of an install ID) before launch.
 
 ## 9. Engineering requirements

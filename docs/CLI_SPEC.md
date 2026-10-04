@@ -1,16 +1,16 @@
 # CLI Specification
 
-Part of the [geoprobe PRD](PRD.md). Working name; see PRD. This spec is the contract; breaking changes after v1.0 require a major version bump.
+Part of the [geoctl PRD](PRD.md). Working name; see PRD. This spec is the contract; breaking changes after v1.0 require a major version bump.
 
 ## 1. Invocation
 
 ```bash
 # one-off, no install
-uvx geoprobe audit https://example.com
+uvx geoctl audit https://example.com
 
 # installed
-pipx install geoprobe
-geoprobe audit https://example.com
+pipx install geoctl
+geoctl audit https://example.com
 ```
 
 Global flags (available on every command):
@@ -26,19 +26,19 @@ Global flags (available on every command):
 
 ## 2. Commands
 
-### 2.1 `geoprobe audit <url>` (v0.1)
+### 2.1 `geoctl audit <url>` (v0.1)
 
 Runs the deterministic checks and the answerability eval.
 
 ```bash
 # Deterministic only — no key needed
-geoprobe audit https://example.com
+geoctl audit https://example.com
 
 # Deterministic + eval (auto-enabled when a key is present; see below)
-geoprobe audit https://example.com --eval --model openai/gpt-4o-mini
+geoctl audit https://example.com --eval --model openai/gpt-4o-mini
 
-geoprobe audit https://example.com --format json --output report.json
-geoprobe audit https://example.com --fail-under 70
+geoctl audit https://example.com --format json --output report.json
+geoctl audit https://example.com --fail-under 70
 ```
 
 **Eval is the headline, not an opt-in extra.** `--eval` defaults to **auto**: it runs when
@@ -81,42 +81,42 @@ Eval flags:
 | `--fail-under-eval-margin N` | 10 | Do not fail the build when the eval's 95% CI is wider than this |
 | `--strict-eval` | off | Fail on a threshold even when the CI is too wide to justify it |
 
-### 2.2 `geoprobe init` (v0.1)
+### 2.2 `geoctl init` (v0.1)
 
-Creates a `geoprobe.toml` and optional `facts.yaml` template in the current directory. Interactive on a TTY; accepts `--yes` for defaults.
+Creates a `geoctl.toml` and optional `facts.yaml` template in the current directory. Interactive on a TTY; accepts `--yes` for defaults.
 
-### 2.3 `geoprobe doctor` (v0.1, P1)
+### 2.3 `geoctl doctor` (v0.1, P1)
 
 Checks Python version, optional extras (Playwright browsers), network reachability, LLM key presence (not validity unless `--test-keys`), cache directory, and telemetry status. Exit 0 if healthy.
 
-### 2.4 `geoprobe cache` (v0.1)
+### 2.4 `geoctl cache` (v0.1)
 
 ```bash
-geoprobe cache path
-geoprobe cache stats
-geoprobe cache clear [--llm] [--fetch]
+geoctl cache path
+geoctl cache stats
+geoctl cache clear [--llm] [--fetch]
 ```
 
-### 2.5 `geoprobe telemetry` (v0.1)
+### 2.5 `geoctl telemetry` (v0.1)
 
 ```bash
-geoprobe telemetry status     # enabled / disabled and why
-geoprobe telemetry enable
-geoprobe telemetry disable
-geoprobe telemetry show       # print the exact payload that would be sent
+geoctl telemetry status     # enabled / disabled and why
+geoctl telemetry enable
+geoctl telemetry disable
+geoctl telemetry show       # print the exact payload that would be sent
 ```
 
-### 2.6 `geoprobe generate ...` (v0.2)
+### 2.6 `geoctl generate ...` (v0.2)
 
 ```bash
-geoprobe generate llms-txt https://example.com --output public/llms.txt
-geoprobe generate robots   https://example.com --policy allow-search-block-training
-geoprobe generate jsonld   https://example.com --type Organization
+geoctl generate llms-txt https://example.com --output public/llms.txt
+geoctl generate robots   https://example.com --policy allow-search-block-training
+geoctl generate jsonld   https://example.com --type Organization
 ```
 
 Generates starter files from the crawl. Output is a proposal: never overwrites an existing file without `--force`.
 
-### 2.7 `geoprobe fix` (v0.3)
+### 2.7 `geoctl fix` (v0.3)
 
 Planned: analyze a local repo, propose framework-aware changes, optionally open a PR. Out of scope for v0.1; interface to be specified when the fix agent is designed.
 
@@ -124,9 +124,9 @@ Planned: analyze a local repo, propose framework-aware changes, optionally open 
 
 ### 3.1 Precedence
 
-`CLI flags` > `environment variables` > project `geoprobe.toml` > user config (`~/.config/geoprobe/config.toml`) > defaults.
+`CLI flags` > `environment variables` > project `geoctl.toml` > user config (`~/.config/geoctl/config.toml`) > defaults.
 
-### 3.2 `geoprobe.toml` example
+### 3.2 `geoctl.toml` example
 
 ```toml
 [audit]
@@ -161,9 +161,9 @@ API keys do **not** go in this file. The tool warns if it detects key-like value
 | Variable | Purpose |
 |---|---|
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, ... | Provider keys (standard LiteLLM names) |
-| `GEOPROBE_CONFIG` | Path to config file |
-| `GEOPROBE_CACHE_DIR` | Override cache location |
-| `GEOPROBE_TELEMETRY` | `0` / `1` |
+| `GEOCTL_CONFIG` | Path to config file |
+| `GEOCTL_CACHE_DIR` | Override cache location |
+| `GEOCTL_TELEMETRY` | `0` / `1` |
 | `DO_NOT_TRACK` | `1` disables telemetry regardless of other settings |
 | `NO_COLOR` | Disable color output |
 
@@ -189,7 +189,7 @@ When present, these facts are used as the question set and ground truth, in addi
 A facts file is the **strongest** ground truth available, and the cheapest: it is
 hand-written, so it is independent of both the crawler view and the rendered view, and it
 makes the eval high-confidence. Prefer it whenever you know what your site should be able
-to answer. `geoprobe init` writes a commented template.
+to answer. `geoctl init` writes a commented template.
 
 ## 5. Exit codes
 
@@ -212,7 +212,7 @@ to answer. `geoprobe init` writes a commented template.
 ## 7. Example terminal output (illustrative)
 
 ```
-geoprobe 0.1.0 · https://example.com · 10 pages · 4.2s
+geoctl 0.1.0 · https://example.com · 10 pages · 4.2s
 
 Deterministic score  40 / 100
 

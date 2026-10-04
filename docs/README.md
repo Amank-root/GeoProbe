@@ -1,11 +1,11 @@
-# geoprobe: Product Documentation
+# geoctl: Product Documentation
 
-> **Working name.** `geoprobe` is a placeholder and **cannot be used as-is**: it is taken on
-> PyPI by a dormant, unrelated project, and an operating commercial product with
-> overlapping scope already runs at `geoprobe.ai`. Collision check complete; replacement
-> name open. See [#4](https://github.com/Amank-root/GeoProbe/issues/4).
+**geoctl** — *Generative Engine Optimization control*. An open-source CLI that tells you whether AI systems can **reach**, **read**, and **correctly answer questions from** your website, then helps you fix what's broken. Bring your own LLM keys; runs locally or in CI; no account.
 
-An open-source CLI that tells you whether AI systems can **reach**, **read**, and **correctly answer questions from** your website, then helps you fix what's broken. Bring your own LLM keys; runs locally or in CI; no account.
+> **On the name.** Chosen after a collision check found `geoprobe` unusable (taken on PyPI
+> by an unrelated project; in active use by a commercial product at `geoprobe.ai`).
+> `geoctl` is free on PyPI, npm, and GitHub. The expansion is given because "geo" alone
+> reads as *geospatial* to many developers. See [#4](https://github.com/Amank-root/GeoProbe/issues/4).
 
 ## Reading order
 
@@ -23,7 +23,7 @@ An open-source CLI that tells you whether AI systems can **reach**, **read**, an
 
 ## One-paragraph pitch
 
-Most GEO/AEO tools count artifacts (robots.txt rules, llms.txt, schema) and produce a score. `geoprobe` does that too, but adds an **answerability eval**: give an LLM only what a text crawler sees, ask it questions about your site, and measure how many it gets right, with variance. Later versions turn findings into **framework-aware pull requests**.
+Most GEO/AEO tools count artifacts (robots.txt rules, llms.txt, schema) and produce a score. `geoctl` does that too, but adds an **answerability eval**: give an LLM only what a text crawler sees, ask it questions about your site, and measure how many it gets right, with variance. Later versions turn findings into **framework-aware pull requests**.
 
 ## Status of decisions
 

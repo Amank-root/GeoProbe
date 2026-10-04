@@ -1,5 +1,5 @@
 [project]
-name = "geoprobe"
+name = "geoctl"
 version = "0.1.0"
 description = "Audit whether AI systems can reach, read, and answer questions from your website"
 readme = "README.md"
@@ -7,7 +7,9 @@ authors = [
     { name = "Aman Kushwaha", email = "70597017+Amank-root@users.noreply.github.com" }
 ]
 requires-python = ">=3.10"
-keywords = ["geo", "aeo", "llm", "seo", "crawler", "cli", "audit"]
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+keywords = ["geo", "aeo", "generative-engine-optimization", "llm", "seo", "crawler", "cli", "audit"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -46,12 +48,12 @@ dev = [
 ]
 
 [project.scripts]
-geoprobe = "geoprobe.cli:main"
+geoctl = "geoctl.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Amank-root/geoprobe"
-Documentation = "https://github.com/Amank-root/geoprobe/tree/main/docs"
-Issues = "https://github.com/Amank-root/geoprobe/issues"
+Homepage = "https://github.com/Amank-root/GeoProbe"
+Documentation = "https://github.com/Amank-root/GeoProbe/tree/main/docs"
+Issues = "https://github.com/Amank-root/GeoProbe/issues"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
