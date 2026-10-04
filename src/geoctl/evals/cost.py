@@ -113,8 +113,7 @@ def estimate(
             gen_input = min(page_tokens, 120_000) + _GENERATION_SYSTEM_TOKENS
             total.input_tokens += gen_input
             total.output_tokens += questions_per_page * 120
-            total.cost_usd += estimate_cost(answer_model, gen_input,
-                                            questions_per_page * 120)
+            total.cost_usd += estimate_cost(answer_model, gen_input, questions_per_page * 120)
 
         total.answer_calls += question_trials
         answer_input = question_trials * (context_tokens + ANSWER_OVERHEAD_TOKENS)

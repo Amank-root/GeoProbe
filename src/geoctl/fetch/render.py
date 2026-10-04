@@ -32,8 +32,10 @@ def render_urls(urls: list[str], timeout_ms: int = 20_000) -> list[RenderResult]
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        return [RenderResult(url=u, html=None, status=None, error="playwright not installed")
-                for u in urls]
+        return [
+            RenderResult(url=u, html=None, status=None, error="playwright not installed")
+            for u in urls
+        ]
 
     out: list[RenderResult] = []
     try:
@@ -52,13 +54,18 @@ def render_urls(urls: list[str], timeout_ms: int = 20_000) -> list[RenderResult]
                         response = page.goto(url, timeout=timeout_ms, wait_until="networkidle")
                         html = page.content().encode("utf-8", "replace")
                         out.append(
-                            RenderResult(url=url, html=html,
-                                         status=response.status if response else None)
+                            RenderResult(
+                                url=url, html=html, status=response.status if response else None
+                            )
                         )
                     except Exception as exc:
                         out.append(
-                            RenderResult(url=url, html=None, status=None,
-                                         error=f"{type(exc).__name__}: {exc}")
+                            RenderResult(
+                                url=url,
+                                html=None,
+                                status=None,
+                                error=f"{type(exc).__name__}: {exc}",
+                            )
                         )
                     finally:
                         page.close()
@@ -66,6 +73,7 @@ def render_urls(urls: list[str], timeout_ms: int = 20_000) -> list[RenderResult]
                 browser.close()
     except Exception as exc:
         for url in urls:
-            out.append(RenderResult(url=url, html=None, status=None,
-                                    error=f"render unavailable: {exc}"))
+            out.append(
+                RenderResult(url=url, html=None, status=None, error=f"render unavailable: {exc}")
+            )
     return out

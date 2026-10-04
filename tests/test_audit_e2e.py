@@ -147,9 +147,7 @@ def test_missing_robots_passes_as_default_allow(serve, allow_private_config):
 
 def test_policy_block_is_a_warn_under_report_policy(serve, allow_private_config):
     site = good_site()
-    site.add("/robots.txt", Route(
-        body=ROBOTS_POLICY.encode(), content_type="text/plain"
-    ))
+    site.add("/robots.txt", Route(body=ROBOTS_POLICY.encode(), content_type="text/plain"))
     url = serve(site) + "/"
 
     allow_private_config.audit.policy = "report"
@@ -169,7 +167,6 @@ def test_policy_block_is_a_warn_under_report_policy(serve, allow_private_config)
 
 def test_wildcard_robots_rules_are_evaluated_per_bot(serve, allow_private_config):
 
-
     site = good_site()
     site.add("/robots.txt", Route(body=ROBOTS_WILDCARD.encode(), content_type="text/plain"))
     url = serve(site) + "/"
@@ -184,7 +181,6 @@ def test_wildcard_robots_rules_are_evaluated_per_bot(serve, allow_private_config
 
 
 def test_block_all_robots_is_reported_under_policy_fail(serve, allow_private_config):
-
 
     site = good_site()
     site.add("/robots.txt", Route(body=ROBOTS_BLOCK_ALL.encode(), content_type="text/plain"))
@@ -232,10 +228,8 @@ def test_hybrid_page_is_not_a_clean_pass(serve, allow_private_config):
 
 def test_sitemap_index_is_followed(serve, allow_private_config):
 
-
     site = good_site()
-    site.add("/sitemap.xml", Route(body=SITEMAP_INDEX.encode(),
-        content_type="application/xml"))
+    site.add("/sitemap.xml", Route(body=SITEMAP_INDEX.encode(), content_type="application/xml"))
     site.add("/sitemap-pages.xml", Route(body=SITEMAP.encode(), content_type="application/xml"))
     url = serve(site) + "/"
     report = build_report(run_audit(allow_private_config, url), allow_private_config)
@@ -248,8 +242,7 @@ def test_sitemap_index_is_followed(serve, allow_private_config):
 def test_missing_sitemap_fails_dis001_with_weight_1(serve, allow_private_config):
     site = good_site()
     del site.routes["/sitemap.xml"]
-    site.add("/robots.txt", Route(
-        body=b"User-agent: *\nAllow: /\n", content_type="text/plain"))
+    site.add("/robots.txt", Route(body=b"User-agent: *\nAllow: /\n", content_type="text/plain"))
     url = serve(site) + "/"
     report = build_report(run_audit(allow_private_config, url), allow_private_config)
 
@@ -330,8 +323,7 @@ def test_errors_are_collected_not_raised(serve, allow_private_config):
     """A dead page must not abort the audit (ARCHITECTURE §11)."""
     site = FixtureSite()
     site.add_html("/", GOOD_PAGE)
-    site.add("/robots.txt", Route(
-        body=ROBOTS_ALLOW_ALL.encode(), content_type="text/plain"))
+    site.add("/robots.txt", Route(body=ROBOTS_ALLOW_ALL.encode(), content_type="text/plain"))
     url = serve(site) + "/missing-page"
     report = build_report(run_audit(allow_private_config, url), allow_private_config)
     assert report.target.pages_audited >= 0

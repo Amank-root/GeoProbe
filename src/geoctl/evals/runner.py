@@ -73,8 +73,12 @@ def aggregate(page: PageResult, total_questions: int) -> dict[str, Any]:
     """
     if not page.outcomes:
         return {
-            "mean": 0.0, "per_trial_stddev": 0.0, "per_trial": [], "ci95": [0.0, 0.0],
-            "questions": 0, "question_trials": 0,
+            "mean": 0.0,
+            "per_trial_stddev": 0.0,
+            "per_trial": [],
+            "ci95": [0.0, 0.0],
+            "questions": 0,
+            "question_trials": 0,
         }
 
     per_trial: list[float] = []
@@ -167,11 +171,17 @@ def merge_page_results(pages: list[PageResult]) -> EvalResult:
     context_recall = span_hits / spans_available if spans_available else 0.0
 
     retrievals = [p.retrieval for p in usable if p.retrieval]
-    first = retrievals[0] if retrievals else RetrievalReport(
-        mode="whole_page", top_k=5,
-        chunk_target_tokens=retrieval_mod.CHUNK_TARGET_TOKENS,
-        chunk_overlap_pct=retrieval_mod.CHUNK_OVERLAP_PCT,
-        embedding_model="none", chunk_count=0,
+    first = (
+        retrievals[0]
+        if retrievals
+        else RetrievalReport(
+            mode="whole_page",
+            top_k=5,
+            chunk_target_tokens=retrieval_mod.CHUNK_TARGET_TOKENS,
+            chunk_overlap_pct=retrieval_mod.CHUNK_OVERLAP_PCT,
+            embedding_model="none",
+            chunk_count=0,
+        )
     )
     first.chunk_count = sum(r.chunk_count for r in retrievals) or first.chunk_count
     if any(r.mode == "whole_page" for r in retrievals):
@@ -220,7 +230,9 @@ def run_page(
         return result
 
     prepared, vectors = retrieval_mod.prepare(
-        corpus.crawler_text, top_k=top_k, embedding_model=embedding_model,
+        corpus.crawler_text,
+        top_k=top_k,
+        embedding_model=embedding_model,
         embed_fn=embed_fn,
     )
     result.retrieval = RetrievalReport(
@@ -252,8 +264,11 @@ def run_page(
         for index, question in enumerate(questions):
             query_vector = question_vectors[index] if question_vectors else None
             top = retrieval_mod.retrieve(
-                question.question, prepared.chunks, top_k=top_k,
-                vectors=vectors, query_vector=query_vector,
+                question.question,
+                prepared.chunks,
+                top_k=top_k,
+                vectors=vectors,
+                query_vector=query_vector,
             )
             retrieved_chunks = [chunk for chunk, _ in top]
             hit = retrieval_mod.span_retrieved(question.source_span, retrieved_chunks)
@@ -267,8 +282,11 @@ def run_page(
 
             candidate = answer_mod.answer(llm_answerer, question.question, top)
             verdict = judge_mod.judge(
-                llm_judge, question.question, question.reference_answer,
-                candidate.answer, abstained=candidate.abstained,
+                llm_judge,
+                question.question,
+                question.reference_answer,
+                candidate.answer,
+                abstained=candidate.abstained,
             )
             outcome.verdicts.append(verdict.verdict)
             per_question_outcomes[index].append(verdict.verdict)
@@ -331,9 +349,7 @@ def _coverage_loss(outcomes: list[list[str]], total: int) -> float | None:
     """Questions answerable from ground truth that failed from the crawler view."""
     if not total:
         return None
-    losses = [
-        1.0 if v and judge_mod.CORRECT not in v else 0.0 for v in outcomes
-    ]
+    losses = [1.0 if v and judge_mod.CORRECT not in v else 0.0 for v in outcomes]
     return round(sum(losses) / len(losses), 4) if losses else None
 
 

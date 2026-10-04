@@ -111,8 +111,7 @@ class FetchClient:
         try:
             check_url(url, self.allow_private)
         except BlockedTarget as exc:
-            return FetchResult(url=url, final_url=url, bot=bot, error=str(exc),
-                               blocked_by="status")
+            return FetchResult(url=url, final_url=url, bot=bot, error=str(exc), blocked_by="status")
 
         cache_key = (url, bot, user_agent, self.allow_private)
         if self.use_cache and self.cache:
@@ -120,8 +119,9 @@ class FetchClient:
             if isinstance(cached, FetchResult):
                 return cached
 
-        result = await self._fetch_uncached(url, bot=bot, user_agent=user_agent,
-                                            headers=headers or {})
+        result = await self._fetch_uncached(
+            url, bot=bot, user_agent=user_agent, headers=headers or {}
+        )
         if self.use_cache and self.cache and result.error is None:
             self.cache.set(NS_FETCH, result, *cache_key)
         return result
@@ -161,14 +161,15 @@ class FetchClient:
                                 break
                             next_url = str(httpx.URL(current).join(location))
                             redirect_chain.append(
-                                {"from": current, "status": response.status_code,
-                                 "to": next_url}
+                                {"from": current, "status": response.status_code, "to": next_url}
                             )
                             try:
                                 check_url(next_url, self.allow_private)
                             except BlockedTarget as exc:
                                 blocked = FetchResult(
-                                    url=url, final_url=current, bot=bot,
+                                    url=url,
+                                    final_url=current,
+                                    bot=bot,
                                     status=response.status_code,
                                     elapsed_ms=self._elapsed(started),
                                     error=f"Blocked redirect: {exc}",
@@ -225,8 +226,12 @@ class FetchClient:
         chain: list[dict[str, Any]] | None = None,
     ) -> FetchResult:
         return FetchResult(
-            url=url, final_url=url, bot=bot, error=message,
-            elapsed_ms=self._elapsed(started), redirect_chain=chain or [],
+            url=url,
+            final_url=url,
+            bot=bot,
+            error=message,
+            elapsed_ms=self._elapsed(started),
+            redirect_chain=chain or [],
         )
 
     async def _polite_delay(self, url: str) -> None:
@@ -240,12 +245,13 @@ class FetchClient:
         self._last_hit[host] = time.monotonic()
 
     async def fetch_many(
-        self, urls: list[str], bot: Bot | None = None, user_agent: str = BROWSER_UA,
+        self,
+        urls: list[str],
+        bot: Bot | None = None,
+        user_agent: str = BROWSER_UA,
         name: str = "browser",
     ) -> list[FetchResult]:
-        tasks = [
-            self.fetch(u, bot=name, user_agent=user_agent) for u in urls
-        ]
+        tasks = [self.fetch(u, bot=name, user_agent=user_agent) for u in urls]
         return list(await asyncio.gather(*tasks))
 
 
@@ -273,8 +279,7 @@ async def fetch_all_lenses(
         out[(url, name)] = (
             res
             if isinstance(res, FetchResult)
-            else FetchResult(url=url, final_url=url, bot=name,
-                             error=f"{type(res).__name__}: {res}")
+            else FetchResult(url=url, final_url=url, bot=name, error=f"{type(res).__name__}: {res}")
         )
     return out
 
@@ -285,9 +290,7 @@ def compare_parity(
     """Status, size ratio, and text similarity for ACC-002 evidence."""
     from ..util import similarity
 
-    size_ratio = (
-        bot_result.body_len / browser.body_len if browser.body_len else None
-    )
+    size_ratio = bot_result.body_len / browser.body_len if browser.body_len else None
     return {
         "browser_status": browser.status,
         "bot_status": bot_result.status,

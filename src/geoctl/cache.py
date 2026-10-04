@@ -73,8 +73,7 @@ class Cache:
         except Exception:
             return None
 
-    def set(self, namespace: str, value: Any, *parts: Any,
-            expire: float | None = None) -> None:
+    def set(self, namespace: str, value: Any, *parts: Any, expire: float | None = None) -> None:
         """Store `value` under a key derived from `namespace` and `parts`.
 
         The key deliberately excludes `value`: with the value inside the hash, a
@@ -97,8 +96,13 @@ class Cache:
     def stats(self) -> dict[str, Any]:
         store = self.store
         if store is None:
-            return {"directory": str(self.directory), "enabled": self.enabled,
-                    "entries": 0, "size_bytes": 0, "unavailable": True}
+            return {
+                "directory": str(self.directory),
+                "enabled": self.enabled,
+                "entries": 0,
+                "size_bytes": 0,
+                "unavailable": True,
+            }
         try:
             return {
                 "directory": str(self.directory),
@@ -107,8 +111,13 @@ class Cache:
                 "size_bytes": store.volume(),
             }
         except Exception:
-            return {"directory": str(self.directory), "enabled": True, "entries": 0,
-                    "size_bytes": 0, "unavailable": True}
+            return {
+                "directory": str(self.directory),
+                "enabled": True,
+                "entries": 0,
+                "size_bytes": 0,
+                "unavailable": True,
+            }
 
     def clear(self, namespace: str | None = None) -> int:
         store = self.store

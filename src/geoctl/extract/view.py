@@ -88,7 +88,10 @@ def build_view(
 
 
 def build_bundle(
-    url: str, fetches: dict[str, FetchResult], *, cache: Cache | None = None,
+    url: str,
+    fetches: dict[str, FetchResult],
+    *,
+    cache: Cache | None = None,
     use_cache: bool = True,
 ) -> PageBundle:
     """Assemble the per-page bundle from every lens fetched for it."""
@@ -123,7 +126,10 @@ def add_rendered_view(bundle: PageBundle, html: bytes | None, lens: str = "rende
     if html is None:
         return
     pseudo = FetchResult(
-        url=bundle.url, final_url=bundle.final_url, bot="__rendered__", status=200,
+        url=bundle.url,
+        final_url=bundle.final_url,
+        bot="__rendered__",
+        status=200,
         body=html,
     )
     bundle.fetches[lens] = pseudo

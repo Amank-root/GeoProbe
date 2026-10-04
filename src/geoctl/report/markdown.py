@@ -99,11 +99,14 @@ def _eval_section(report: AuditReport) -> list[str]:
         "",
     ]
     if ev.confidence == "low":
-        out.extend([
-            "> Ground truth was the crawler view itself, which makes this circular. It measures "
-            "clarity, not content loss, and must not be used to gate CI.",
-            "",
-        ])
+        out.extend(
+            [
+                f"- Mean: {a.get('mean', 0):.1f}** "
+                f"(95% CI {ci[0]:.1f} to {ci[1]:.1f}, "
+                "clarity, not content loss, and must not be used to gate CI.",
+                "",
+            ]
+        )
     if ev.failures:
         out.append("### Questions that failed in most trials")
         out.append("")

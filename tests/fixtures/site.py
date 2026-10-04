@@ -251,8 +251,18 @@ stocked items from our Rotterdam warehouse.
 - [Documentation](/docs)
 """
 
-BOT_AGENT_MARKERS = ("GPTBot", "ClaudeBot", "PerplexityBot", "CCBot", "Google-Extended",
-                     "OAI-SearchBot", "ChatGPT-User", "anthropic-ai", "Bingbot", "Googlebot")
+BOT_AGENT_MARKERS = (
+    "GPTBot",
+    "ClaudeBot",
+    "PerplexityBot",
+    "CCBot",
+    "Google-Extended",
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "anthropic-ai",
+    "Bingbot",
+    "Googlebot",
+)
 
 
 # Fixture documents name this placeholder origin; the server rewrites it to the
@@ -284,8 +294,9 @@ class FixtureSite:
     def add_html(self, path: str, html: str, **kwargs: object) -> None:
         self.add(path, Route(body=html.encode("utf-8"), **kwargs))  # type: ignore[arg-type]
 
-    def get(self, path: str, user_agent: str = "",
-            origin: str = PLACEHOLDER_ORIGIN) -> tuple[int, dict[str, str], bytes]:
+    def get(
+        self, path: str, user_agent: str = "", origin: str = PLACEHOLDER_ORIGIN
+    ) -> tuple[int, dict[str, str], bytes]:
         route = self.routes.get(path)
         if route is None:
             return 404, {"content-type": "text/plain"}, b"not found"
@@ -350,10 +361,7 @@ def challenge_site(site: FixtureSite | None = None) -> FixtureSite:
         "/",
         Route(
             body=GOOD_PAGE.encode(),
-            by_agent={
-                marker: (CHALLENGE_PAGE.encode(), 200, None)
-                for marker in BOT_AGENT_MARKERS
-            },
+            by_agent={marker: (CHALLENGE_PAGE.encode(), 200, None) for marker in BOT_AGENT_MARKERS},
         ),
     )
     site.add("/robots.txt", Route(body=ROBOTS_ALLOW_ALL.encode(), content_type="text/plain"))
@@ -363,6 +371,7 @@ def challenge_site(site: FixtureSite | None = None) -> FixtureSite:
 def handler_for(site: FixtureSite) -> Handler:
     """Adapt a FixtureSite to the callable the fetch client expects."""
     return lambda path, user_agent: site.get(path, user_agent)
+
 
 # --------------------------------------------------------------------------------
 # Builders for the fixture catalog (tests/fixtures/catalog.py).
@@ -480,10 +489,16 @@ def multi_page_site() -> FixtureSite:
         f"<url><loc>https://fixtures.local/page{i}</loc><lastmod>2024-03-04</lastmod></url>"
         for i in range(15)
     )
-    site.add("/sitemap.xml", Route(
-        body=(f'<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-              f"{urls}</urlset>").encode(),
-        content_type="application/xml"))
+    site.add(
+        "/sitemap.xml",
+        Route(
+            body=(
+                f'<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+                f"{urls}</urlset>"
+            ).encode(),
+            content_type="application/xml",
+        ),
+    )
     for i in range(15):
         site.add_html(f"/page{i}", GOOD_PAGE)
     return site
@@ -491,8 +506,13 @@ def multi_page_site() -> FixtureSite:
 
 def noindex_site() -> FixtureSite:
     site = good_site()
-    site.add_html("/", GOOD_PAGE.replace('<meta name="robots" content="index, follow">',
-                                         '<meta name="robots" content="noindex, follow">'))
+    site.add_html(
+        "/",
+        GOOD_PAGE.replace(
+            '<meta name="robots" content="index, follow">',
+            '<meta name="robots" content="noindex, follow">',
+        ),
+    )
     return site
 
 
@@ -528,9 +548,7 @@ def headings_bad_site() -> FixtureSite:
 
 def boilerplate_site() -> FixtureSite:
     """Navigation, cookie chrome, and footer dominate the HTML (row 19)."""
-    nav = "<nav>" + "".join(
-        f'<a href="/x{i}">Link {i}</a> ' for i in range(120)
-    ) + "</nav>"
+    nav = "<nav>" + "".join(f'<a href="/x{i}">Link {i}</a> ' for i in range(120)) + "</nav>"
     body = GOOD_PAGE.split("<body>")[1].split("</body>")[0]
     page = (
         '<!doctype html><html lang="en"><head>'
@@ -540,7 +558,7 @@ def boilerplate_site() -> FixtureSite:
         '<meta name="robots" content="index, follow">'
         '<script type="application/ld+json">{"@type":"Organization","name":"Acme Widgets"}</script>'
         "</head><body>"
-        f'<div class="cookie-banner">We use cookies. {"Accept "*300}</div>'
+        f'<div class="cookie-banner">We use cookies. {"Accept " * 300}</div>'
         f"{nav}<main>{body}</main>{nav}"
         "<footer>" + ("Legal boilerplate. " * 200) + "</footer>"
         "</body></html>"

@@ -75,9 +75,15 @@ class LLMClient:
 
     # ---------------------------------------------------------------- calls
 
-    def complete(self, prompt: str, *, system: str | None = None,
-                 max_tokens: int | None = None, model: str | None = None,
-                 expect_json: bool = False) -> str:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        max_tokens: int | None = None,
+        model: str | None = None,
+        expect_json: bool = False,
+    ) -> str:
         """One completion, cached. Returns the assistant's text."""
         target = model or self.model
         key = (target, self.temperature, self.seed, max_tokens, system, prompt)
@@ -92,8 +98,9 @@ class LLMClient:
             self.usage.add(replay)
             return str(cached["text"])
 
-        text, call_usage = self._call(target, prompt, system=system,
-                                      max_tokens=max_tokens, expect_json=expect_json)
+        text, call_usage = self._call(
+            target, prompt, system=system, max_tokens=max_tokens, expect_json=expect_json
+        )
         self.usage.add(call_usage)
         if self.use_cache and self.cache:
             self.cache.set(
@@ -108,8 +115,15 @@ class LLMClient:
             )
         return text
 
-    def _call(self, model: str, prompt: str, *, system: str | None,
-              max_tokens: int | None, expect_json: bool) -> tuple[str, Usage]:
+    def _call(
+        self,
+        model: str,
+        prompt: str,
+        *,
+        system: str | None,
+        max_tokens: int | None,
+        expect_json: bool,
+    ) -> tuple[str, Usage]:
         try:
             import litellm
         except ImportError as exc:  # pragma: no cover - litellm is a hard dependency
@@ -142,7 +156,7 @@ class LLMClient:
             except Exception as exc:
                 last_error = exc
                 if attempt < MAX_RETRIES - 1:
-                    time.sleep(BACKOFF_BASE ** attempt)
+                    time.sleep(BACKOFF_BASE**attempt)
         raise ProviderError(_classify(last_error))
 
 
@@ -173,8 +187,17 @@ def _classify(exc: Exception | None) -> str:
         return "unknown provider error"
     text = str(exc).lower()
     name = type(exc).__name__
-    if any(k in text for k in ("api key", "authentication", "unauthorized", "401",
-                               "invalid_api_key", "permission")):
+    if any(
+        k in text
+        for k in (
+            "api key",
+            "authentication",
+            "unauthorized",
+            "401",
+            "invalid_api_key",
+            "permission",
+        )
+    ):
         return f"authentication failed ({name}): {exc}"
     if any(k in text for k in ("rate limit", "429", "too many requests")):
         return f"rate limited after {MAX_RETRIES} attempts: {exc}"
@@ -193,9 +216,9 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     try:
         import litellm
 
-        in_cost, out_cost = litellm.cost_per_token(model=model,
-                                                  prompt_tokens=input_tokens,
-                                                  completion_tokens=output_tokens)
+        in_cost, out_cost = litellm.cost_per_token(
+            model=model, prompt_tokens=input_tokens, completion_tokens=output_tokens
+        )
         total = float(in_cost or 0.0) + float(out_cost or 0.0)
         if total > 0:
             return round(total, 6)
@@ -205,9 +228,7 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     short = model.split("/")[-1].lower()
     for prefix, (in_rate, out_rate) in FALLBACK_PRICING.items():
         if short.startswith(prefix):
-            return round(
-                (input_tokens / 1e6) * in_rate + (output_tokens / 1e6) * out_rate, 6
-            )
+            return round((input_tokens / 1e6) * in_rate + (output_tokens / 1e6) * out_rate, 6)
     return 0.0
 
 

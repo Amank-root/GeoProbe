@@ -72,8 +72,9 @@ class REN001NoJs:
         if has_render:
             compared = [p for p in pages if p["rendered_chars"] >= MIN_RENDER_CHARS]
             if not compared:
-                return skip(self, "rendered text was too short on every page to compare",
-                            evidence=evidence)
+                return skip(
+                    self, "rendered text was too short on every page to compare", evidence=evidence
+                )
             ratios = [p["ratio"] for p in compared]
             mean_ratio = sum(ratios) / len(ratios)
             worst = min(compared, key=lambda p: p["ratio"])
@@ -81,19 +82,24 @@ class REN001NoJs:
             evidence["worst_page"] = worst
 
             if mean_ratio >= PASS_RATIO:
-                return result(self, "pass",
-                              f"{mean_ratio:.0%} of page text is available without JavaScript.",
-                              evidence=evidence)
+                return result(
+                    self,
+                    "pass",
+                    f"{mean_ratio:.0%} of page text is available without JavaScript.",
+                    evidence=evidence,
+                )
             if mean_ratio >= FAIL_RATIO:
                 return result(
-                    self, "warn",
+                    self,
+                    "warn",
                     f"{mean_ratio:.0%} of page text is available without JavaScript.",
                     fix="Server-render or pre-render the affected content. A crawler that does "
-                        "not run JavaScript sees only what is in the HTML.",
+                    "not run JavaScript sees only what is in the HTML.",
                     evidence=evidence,
                 )
             return result(
-                self, "fail",
+                self,
+                "fail",
                 f"Only {mean_ratio:.0%} of page text is present without JavaScript "
                 f"(worst: {worst['url']}, {worst['nojs_chars']} chars before JS vs "
                 f"{worst['rendered_chars']} after).",
@@ -107,7 +113,8 @@ class REN001NoJs:
 
         if empty_pages and shells:
             return result(
-                self, "fail",
+                self,
+                "fail",
                 f"Main content is empty without JavaScript on {len(empty_pages)} of "
                 f"{len(pages)} pages, with app-shell markers present.",
                 fix="Server-render or pre-render the affected content.",
@@ -115,27 +122,30 @@ class REN001NoJs:
             )
         if shells:
             return result(
-                self, "warn",
+                self,
+                "warn",
                 f"App-shell markers present ({', '.join(shells)}). Without --render this "
                 "cannot be measured, so this is low confidence.",
                 fix="Re-run with --render for a measured comparison, and server-render the "
-                    "content if the shell is the only thing a crawler receives.",
+                "content if the shell is the only thing a crawler receives.",
                 confidence="low",
                 evidence=evidence,
             )
         small = [p for p in pages if p["nojs_chars"] < PASS_CHARS]
         if small:
             return result(
-                self, "warn",
+                self,
+                "warn",
                 f"{len(small)} of {len(pages)} pages yield under {PASS_CHARS} characters of "
                 "main text before JavaScript.",
                 fix="Re-run with --render to measure the ratio, and check whether the content "
-                    "is client-rendered.",
+                "is client-rendered.",
                 confidence="medium",
                 evidence=evidence,
             )
         return result(
-            self, "pass",
+            self,
+            "pass",
             f"Every sampled page yields over {PASS_CHARS} characters of main text without "
             "JavaScript (no render comparison available).",
             confidence="medium",
@@ -175,8 +185,7 @@ class REN002Extractable:
         thin = [p for p in pages if p["chars"] < self.FAIL_CHARS]
         weak = [p for p in pages if self.FAIL_CHARS <= p["chars"] < self.PASS_CHARS]
         boilerplate = [
-            p for p in pages
-            if p["html_chars"] > 20_000 and p["extraction_ratio"] < self.LOW_RATIO
+            p for p in pages if p["html_chars"] > 20_000 and p["extraction_ratio"] < self.LOW_RATIO
         ]
         modes = sorted({p["extraction_mode"] for p in pages if p["extraction_mode"]})
         evidence = {
@@ -192,33 +201,40 @@ class REN002Extractable:
 
         if thin:
             return result(
-                self, "fail",
+                self,
+                "fail",
                 f"Extraction yielded under {self.FAIL_CHARS} characters on {len(thin)} of "
                 f"{len(pages)} pages.",
                 fix="The page's main content may be client-rendered, or inside an "
-                    "element extractors skip (an iframe, for instance). Serve the "
-                    "content in the server-rendered HTML.",
+                "element extractors skip (an iframe, for instance). Serve the "
+                "content in the server-rendered HTML.",
                 evidence=evidence,
             )
         if weak or boilerplate:
             reasons = []
             if weak:
                 reasons.append(
-                    f"{len(weak)} page(s) between {self.FAIL_CHARS} and "
-                    f"{self.PASS_CHARS} chars"
+                    f"{len(weak)} page(s) between {self.FAIL_CHARS} and {self.PASS_CHARS} chars"
                 )
             if boilerplate:
                 reasons.append(
                     f"{len(boilerplate)} page(s) where extraction kept under 1% of a "
                     "large HTML body"
                 )
-            return result(self, "warn", "Thin extraction: " + "; ".join(reasons) + ".",
-                          fix="Check that the main content is in the server-rendered HTML and "
-                              "not wrapped in navigation or a frame.",
-                          evidence=evidence)
-        return result(self, "pass",
-                      f"Main content extracts cleanly on all {len(pages)} pages.",
-                      evidence=evidence)
+            return result(
+                self,
+                "warn",
+                "Thin extraction: " + "; ".join(reasons) + ".",
+                fix="Check that the main content is in the server-rendered HTML and "
+                "not wrapped in navigation or a frame.",
+                evidence=evidence,
+            )
+        return result(
+            self,
+            "pass",
+            f"Main content extracts cleanly on all {len(pages)} pages.",
+            evidence=evidence,
+        )
 
 
 REN001 = REN001NoJs()

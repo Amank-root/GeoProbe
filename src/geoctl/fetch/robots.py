@@ -72,7 +72,9 @@ def evaluate_all(
     if text is None:
         for name, token in tokens.items():
             report.verdicts[name] = {
-                "verdict": "allowed", "token": token, "matched_rule": None,
+                "verdict": "allowed",
+                "token": token,
+                "matched_rule": None,
                 "robots_present": False,
             }
         return report

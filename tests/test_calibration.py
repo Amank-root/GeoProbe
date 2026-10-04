@@ -132,12 +132,10 @@ def test_the_known_good_set_is_at_least_forty_percent(calibration: Calibration):
 
 def test_false_positive_rate_is_under_five_percent(calibration: Calibration):
     """The v0.1 release gate (ROADMAP M1, CHECKS §9)."""
-    counted = [fp for fp in calibration.false_positives
-               if fp[1] not in FALSE_POSITIVE_EXCLUSIONS]
+    counted = [fp for fp in calibration.false_positives if fp[1] not in FALSE_POSITIVE_EXCLUSIONS]
     rate = len(counted) / calibration.compared if calibration.compared else 0.0
     assert rate < 0.05, (
-        f"false-positive rate {rate:.1%} exceeds the 5% target. "
-        f"Offenders: {counted}"
+        f"false-positive rate {rate:.1%} exceeds the 5% target. Offenders: {counted}"
     )
 
 
@@ -149,8 +147,7 @@ def test_no_false_negatives_on_the_defects_under_test(calibration: Calibration):
     stopped testing anything.
     """
     assert not calibration.false_negatives, (
-        "fixtures did not reproduce the defects they were built for: "
-        f"{calibration.false_negatives}"
+        f"fixtures did not reproduce the defects they were built for: {calibration.false_negatives}"
     )
 
 

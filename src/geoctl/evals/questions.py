@@ -108,8 +108,11 @@ def questions_from_facts(facts: FactsFile, site: str | None = None) -> QuestionS
                 page=page,
             )
         )
-    return QuestionSet(questions=_dedupe(questions), ground_truth="facts",
-                       source_pages=sorted({q.page for q in questions if q.page}))
+    return QuestionSet(
+        questions=_dedupe(questions),
+        ground_truth="facts",
+        source_pages=sorted({q.page for q in questions if q.page}),
+    )
 
 
 # ------------------------------------------------------------------- generation

@@ -189,36 +189,63 @@ def test_audit_emits_a_report_on_stdout(local_site):
 
 
 def test_audit_json_validates_and_contains_the_contract(local_site):
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--format", "json")
+    result = run("audit", local_site, "--allow-private", "--eval", "false", "--format", "json")
     assert result.exit_code == EXIT_OK
     report = json.loads(result.stdout)
-    for field in ("schema_version", "tool", "run", "target", "score", "checks",
-                  "pages", "eval", "errors"):
+    for field in (
+        "schema_version",
+        "tool",
+        "run",
+        "target",
+        "score",
+        "checks",
+        "pages",
+        "eval",
+        "errors",
+    ):
         assert field in report, f"{field} is required by OUTPUT_SCHEMA §2"
     assert report["eval"] is None
 
 
 def test_audit_markdown_writes_to_a_file(local_site, tmp_path: Path):
     target = tmp_path / "report.md"
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--format", "markdown", "--output", str(target))
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--eval",
+        "false",
+        "--format",
+        "markdown",
+        "--output",
+        str(target),
+    )
     assert result.exit_code == EXIT_OK
     assert target.read_text(encoding="utf-8").startswith("# geoctl report:")
 
 
 def test_multiple_formats_to_one_directory_use_that_directory(local_site, tmp_path: Path):
     outdir = tmp_path / "reports"
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--format", "json", "--format", "markdown", "--output", str(outdir))
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--eval",
+        "false",
+        "--format",
+        "json",
+        "--format",
+        "markdown",
+        "--output",
+        str(outdir),
+    )
     assert result.exit_code == EXIT_OK
     assert (outdir / "report.json").exists()
     assert (outdir / "report.markdown").exists()
 
 
 def test_fail_under_exits_one(local_site):
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--fail-under", "101")
+    result = run("audit", local_site, "--allow-private", "--eval", "false", "--fail-under", "101")
     assert result.exit_code == EXIT_THRESHOLD
     # The report must still be printed: a threshold failure is information.
     assert "Deterministic score" in combined(result)
@@ -226,30 +253,52 @@ def test_fail_under_exits_one(local_site):
 
 
 def test_fail_under_passes_when_the_score_is_high(local_site):
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--fail-under", "1")
+    result = run("audit", local_site, "--allow-private", "--eval", "false", "--fail-under", "1")
     assert result.exit_code == EXIT_OK
     assert "Deterministic score" in result.stdout
 
 
 def test_only_runs_the_requested_checks(local_site):
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--only", "ACC-001,REN-001", "--format", "json")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--eval",
+        "false",
+        "--only",
+        "ACC-001,REN-001",
+        "--format",
+        "json",
+    )
     ids = {c["id"] for c in json.loads(result.stdout)["checks"]}
     assert ids == {"ACC-001", "REN-001"}
 
 
 def test_skip_omits_the_requested_checks(local_site):
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--skip", "structure", "--format", "json")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--eval",
+        "false",
+        "--skip",
+        "structure",
+        "--format",
+        "json",
+    )
     report = json.loads(result.stdout)
     assert not any(c["category"] == "structure" for c in report["checks"])
     assert any(c["category"] == "access" for c in report["checks"])
 
 
 def test_eval_is_skipped_with_a_note_when_no_key_is_present(local_site, monkeypatch):
-    for var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY",
-                "GROQ_API_KEY", "OPENROUTER_API_KEY"):
+    for var in (
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GROQ_API_KEY",
+        "OPENROUTER_API_KEY",
+    ):
         monkeypatch.delenv(var, raising=False)
     result = run("audit", local_site, "--allow-private")
     assert result.exit_code == EXIT_OK
@@ -258,8 +307,9 @@ def test_eval_is_skipped_with_a_note_when_no_key_is_present(local_site, monkeypa
 
 def test_dry_run_makes_no_llm_calls_and_shows_an_estimate(local_site, monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "sk-not-used-because-dry-run")
-    result = run("audit", local_site, "--allow-private", "--dry-run",
-                 "--questions", "5", "--trials", "1")
+    result = run(
+        "audit", local_site, "--allow-private", "--dry-run", "--questions", "5", "--trials", "1"
+    )
     assert result.exit_code == EXIT_OK
     text = combined(result)
     assert "No API call was made" in text
@@ -275,8 +325,17 @@ def test_fail_under_eval_without_an_eval_run_is_not_silently_ignored(local_site,
 
 
 def test_a_reported_page_count_matches_the_sampled_pages(local_site):
-    result = run("audit", local_site, "--allow-private", "--eval", "false",
-                 "--max-pages", "2", "--format", "json")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--eval",
+        "false",
+        "--max-pages",
+        "2",
+        "--format",
+        "json",
+    )
     report = json.loads(result.stdout)
     assert report["target"]["pages_audited"] <= 2
     assert len(report["pages"]) <= 2

@@ -39,9 +39,15 @@ class TRU001Dates:
         rows: list[dict[str, Any]] = []
         for bundle in ctx.browser_pages():
             found, sources, bogus = self._dates_for(bundle)
-            rows.append({"url": bundle.url, "dates": found, "sources": sources,
-                         "unparseable": bogus,
-                         "machine_readable": bool(sources)})
+            rows.append(
+                {
+                    "url": bundle.url,
+                    "dates": found,
+                    "sources": sources,
+                    "unparseable": bogus,
+                    "machine_readable": bool(sources),
+                }
+            )
         if not rows:
             return skip(self, "no pages were fetched successfully")
 
@@ -52,9 +58,11 @@ class TRU001Dates:
 
         if len(none) == len(rows):
             return result(
-                self, "fail", "No machine-readable publish or modified date was found.",
+                self,
+                "fail",
+                "No machine-readable publish or modified date was found.",
                 fix="Add article:published_time and article:modified_time meta tags, or "
-                    "datePublished and dateModified in JSON-LD.",
+                "datePublished and dateModified in JSON-LD.",
                 evidence=evidence,
             )
         if unparseable or stale or len(none) < len(rows):
@@ -65,12 +73,17 @@ class TRU001Dates:
                 problems.append(f"{len(stale)} sitemap URL(s) with a stale or future lastmod")
             if len(none) < len(rows):
                 problems.append(f"{len(none)} page(s) with no date at all")
-            return result(self, "warn", "Dates need work: " + "; ".join(problems) + ".",
-                          fix="Publish machine-readable dates. A lastmod in the future is a "
-                              "common sitemap defect and misleads crawlers.",
-                          evidence=evidence)
-        return result(self, "pass", "Every sampled page carries a machine-readable date.",
-                      evidence=evidence)
+            return result(
+                self,
+                "warn",
+                "Dates need work: " + "; ".join(problems) + ".",
+                fix="Publish machine-readable dates. A lastmod in the future is a "
+                "common sitemap defect and misleads crawlers.",
+                evidence=evidence,
+            )
+        return result(
+            self, "pass", "Every sampled page carries a machine-readable date.", evidence=evidence
+        )
 
     def _dates_for(self, bundle: Any) -> tuple[list[str], list[str], list[str]]:
         """Return (values found, machine-readable sources, unparseable values)."""
@@ -128,8 +141,9 @@ class TRU002Author:
         rows: list[dict[str, Any]] = []
         for bundle in ctx.browser_pages():
             source, value = self._identify(bundle)
-            rows.append({"url": bundle.url, "source": source, "value": value,
-                         "found": bool(source)})
+            rows.append(
+                {"url": bundle.url, "source": source, "value": value, "found": bool(source)}
+            )
         if not rows:
             return skip(self, "no pages were fetched successfully")
 
@@ -138,18 +152,21 @@ class TRU002Author:
         evidence = {"pages": rows}
         if len(none) == len(rows):
             return result(
-                self, "fail", "No author or organization signal was found.",
+                self,
+                "fail",
+                "No author or organization signal was found.",
                 fix="Add an Organization or Person entity to your JSON-LD, or an author byline "
-                    "on content pages.",
+                "on content pages.",
                 evidence=evidence,
             )
         if org_only:
             return result(
-                self, "warn",
+                self,
+                "warn",
                 f"An organization is named on {len(org_only)} page(s) but no author is "
                 "identified on content pages.",
                 fix="Name an author on posts and documentation pages. Trust signals are what "
-                    "let a reader (or a model) attribute a claim.",
+                "let a reader (or a model) attribute a claim.",
                 evidence=evidence,
             )
         return result(self, "pass", "An author or organization is identifiable.", evidence=evidence)

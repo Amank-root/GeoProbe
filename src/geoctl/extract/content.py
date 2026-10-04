@@ -19,8 +19,8 @@ RECALL_CHAR_FLOOR = 200
 FRAMEWORK_MARKERS: dict[str, tuple[str, ...]] = {
     "next": ("__NEXT_DATA__", "/_next/static/", "self.__next_f"),
     "nuxt": ("__NUXT__", "/_nuxt/", "__nuxt"),
-    "react_root": ("<div id=\"root\"", "<div id='root'", "data-reactroot"),
-    "vue_app": ("data-v-app", "id=\"app\"", "__VUE__"),
+    "react_root": ('<div id="root"', "<div id='root'", "data-reactroot"),
+    "vue_app": ("data-v-app", 'id="app"', "__VUE__"),
     "angular": ("ng-version", "<app-root", "ng-app"),
     "svelte": ("__sveltekit", "data-svelte", "svelte-"),
     "sveltekit": ("__sveltekit",),
@@ -30,8 +30,8 @@ FRAMEWORK_MARKERS: dict[str, tuple[str, ...]] = {
 # Markers of an empty shell that JS is expected to fill.
 SHELL_MARKERS: dict[str, tuple[str, ...]] = {
     "noscript_warning": ("<noscript>", "enable javascript", "turn on javascript"),
-    "root_div_only": ("<div id=\"root\"></div>", "<div id=\"app\"></div>"),
-    "empty_body_class": ("class=\"loading\"", "data-loading=\"true\""),
+    "root_div_only": ('<div id="root"></div>', '<div id="app"></div>'),
+    "empty_body_class": ('class="loading"', 'data-loading="true"'),
 }
 
 
@@ -80,10 +80,16 @@ def extract_main(html: str | None) -> Extraction:
             mode = "none"
 
     lowered = html.lower()
-    framework = [name for name, needles in FRAMEWORK_MARKERS.items()
-                 if any(n.lower() in lowered for n in needles)]
-    shell = [name for name, needles in SHELL_MARKERS.items()
-             if any(n.lower() in lowered for n in needles)]
+    framework = [
+        name
+        for name, needles in FRAMEWORK_MARKERS.items()
+        if any(n.lower() in lowered for n in needles)
+    ]
+    shell = [
+        name
+        for name, needles in SHELL_MARKERS.items()
+        if any(n.lower() in lowered for n in needles)
+    ]
 
     return Extraction(
         text=text,

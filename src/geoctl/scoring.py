@@ -64,8 +64,9 @@ def status_counts(checks: list[CheckResult]) -> dict[str, dict[str, int]]:
     for check in checks:
         if check.weight > 0:
             continue
-        bucket = out.setdefault(check.category, {"pass": 0, "warn": 0, "fail": 0,
-                                                "skip": 0, "error": 0})
+        bucket = out.setdefault(
+            check.category, {"pass": 0, "warn": 0, "fail": 0, "skip": 0, "error": 0}
+        )
         bucket[check.status] = bucket.get(check.status, 0) + 1
     return out
 

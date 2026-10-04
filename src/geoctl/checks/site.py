@@ -55,31 +55,48 @@ class SITE001Transport:
         }
 
         if browser.error and browser.status is None:
-            return result(self, "error",
-                          f"Could not fetch the start URL: {browser.error}",
-                          evidence=evidence)
+            return result(
+                self, "error", f"Could not fetch the start URL: {browser.error}", evidence=evidence
+            )
 
         if not final_https:
-            return result(self, "fail", "The site is not served over HTTPS.",
-                          fix="Serve every page over HTTPS and redirect HTTP to HTTPS.",
-                          evidence=evidence)
+            return result(
+                self,
+                "fail",
+                "The site is not served over HTTPS.",
+                fix="Serve every page over HTTPS and redirect HTTP to HTTPS.",
+                evidence=evidence,
+            )
         if looped:
-            return result(self, "fail", f"The redirect chain loops ({hops} hops).",
-                          fix="Fix the redirect loop; a crawler will give up and treat the "
-                              "page as unreachable.",
-                          evidence=evidence)
+            return result(
+                self,
+                "fail",
+                f"The redirect chain loops ({hops} hops).",
+                fix="Fix the redirect loop; a crawler will give up and treat the "
+                "page as unreachable.",
+                evidence=evidence,
+            )
         if not hsts:
-            return result(self, "warn", "HTTPS, but no Strict-Transport-Security header.",
-                          fix="Add Strict-Transport-Security, for example "
-                              "`max-age=63072000; includeSubDomains`.",
-                          evidence=evidence)
+            return result(
+                self,
+                "warn",
+                "HTTPS, but no Strict-Transport-Security header.",
+                fix="Add Strict-Transport-Security, for example "
+                "`max-age=63072000; includeSubDomains`.",
+                evidence=evidence,
+            )
         if hops > self.MAX_HOPS:
-            return result(self, "warn", f"HTTPS with HSTS, but the redirect chain is {hops} hops.",
-                          fix="Point the entry URL at the final URL directly; every extra hop "
-                              "is a fetch a crawler has to make.",
-                          evidence=evidence)
+            return result(
+                self,
+                "warn",
+                f"HTTPS with HSTS, but the redirect chain is {hops} hops.",
+                fix="Point the entry URL at the final URL directly; every extra hop "
+                "is a fetch a crawler has to make.",
+                evidence=evidence,
+            )
         return result(
-            self, "pass",
+            self,
+            "pass",
             f"HTTPS with HSTS ({hsts}) and at most {self.MAX_HOPS} redirect hop.",
             evidence=evidence,
         )

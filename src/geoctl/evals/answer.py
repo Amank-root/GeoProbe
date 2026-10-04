@@ -73,8 +73,12 @@ def answer(llm: Any, question: str, chunks: list[tuple[Any, float]]) -> Candidat
     try:
         raw = llm.complete(prompt, system=ANSWERER_SYSTEM, max_tokens=300)
     except Exception as exc:
-        return Candidate(question=question, answer=NOT_FOUND, abstained=True,
-                         error=f"{type(exc).__name__}: {exc}")
+        return Candidate(
+            question=question,
+            answer=NOT_FOUND,
+            abstained=True,
+            error=f"{type(exc).__name__}: {exc}",
+        )
     candidate = parse(raw)
     candidate.question = question
     return candidate
