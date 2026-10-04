@@ -10,7 +10,31 @@ breaking changes bump the major and are called out here
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Any OpenAI-compatible endpoint** for the eval: `--base-url`, `--api-key-env`. Groq,
+  NVIDIA NIM, Together, OpenRouter, vLLM and Ollama are now reachable. Groq and Gemini
+  additionally work as first-class LiteLLM providers with no `base_url` needed.
+- **`--embedding-model`** flag. Embeddings previously had a config key but no CLI flag,
+  so switching embedding provider required hand-editing a file.
+- **Known prices for 18 models**, including Gemini and Groq rates and the OpenAI
+  embedding models.
+
+### Fixed
+
+- **An unknown model price reported `$0.00`.** LiteLLM's cost table is missing many
+  current models — including `openai/gpt-4o-mini`, our own default, and
+  `openai/text-embedding-3-small`, our default embedding model — so cost estimation
+  silently fell through to zero and `--max-cost` could not protect the user.
+  `known_price()` now distinguishes "free" from "unknown", and prices are resolved
+  from the local table, then LiteLLM, then a user override.
+- **`--max-cost` now hard-fails on an unknown price** instead of treating it as within
+  budget. A spending ceiling cannot be enforced against an unknown cost. Supply prices
+  with `--input-cost-per-mtok` / `--output-cost-per-mtok`, or drop the flag to accept an
+  unknown cost. Checked before `--dry-run` returns too, since that is where someone goes
+  to find out what a run will cost.
+- The cache key now includes the endpoint, so the same model name behind two different
+  hosts can no longer share cached answers.
 
 ## [0.1.0] — 2026-10-04
 

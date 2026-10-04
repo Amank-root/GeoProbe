@@ -77,7 +77,12 @@ Eval flags:
 | `--top-k N` | 5 | Chunks retrieved per question |
 | `--facts PATH` | none | Facts file used as ground truth (YAML). Strongest signal — prefer it |
 | `--dry-run` | off | Print estimated tokens and cost; make no LLM calls |
-| `--max-cost USD` | none | Abort before exceeding this estimated cost |
+| `--max-cost USD` | none | Abort before exceeding this estimated cost. **Hard-fails if any selected model's price is unknown** |
+| `--embedding-model NAME` | `openai/text-embedding-3-small` | Embedding model for retrieval. `gemini/gemini-embedding-001` is the cheap alternative |
+| `--base-url URL` | none | Any OpenAI-compatible endpoint: Groq, NVIDIA NIM, Together, OpenRouter, vLLM, Ollama |
+| `--api-key-env NAME` | provider default | Environment variable holding the key. The key is never read from config |
+| `--input-cost-per-mtok N` | none | Price per 1M input tokens, for a model LiteLLM does not price |
+| `--output-cost-per-mtok N` | none | Price per 1M output tokens, likewise |
 | `--fail-under-eval-margin N` | 15 | Do not fail the build when the eval's 95% CI half-width exceeds this (points) |
 | `--strict-eval` | off | Fail on a threshold even when the CI is too wide to justify it |
 

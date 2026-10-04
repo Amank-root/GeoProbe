@@ -12,7 +12,14 @@ from typing import Any
 
 from ..cache import Cache
 from ..config import EvalConfig
-from ..llm.client import CostLimitExceeded, LLMClient
+from ..llm.client import (
+    CostLimitExceeded,
+    Endpoint,
+    LLMClient,
+    UnknownPricing,
+    is_embedding_model,
+    known_price,
+)
 from ..models import EvalUsage
 from ..util import content_hash
 from . import cost as cost_mod
@@ -59,6 +66,20 @@ def resolve_model(config: EvalConfig) -> str:
     return model
 
 
+def _pricing(config: EvalConfig) -> tuple[float | None, float | None]:
+    """User-supplied prices, or (None, None) to use the known tables."""
+    return config.input_cost_per_mtok, config.output_cost_per_mtok
+
+
+def _read_api_key(env_name: str | None) -> str | None:
+    """Read the key from the named environment variable, never from config."""
+    import os
+
+    if not env_name:
+        return None
+    return os.environ.get(env_name)
+
+
 def embed_fn_for(config: EvalConfig) -> Any | None:
     """Return a callable, or None when no embedding provider is configured.
 
@@ -68,7 +89,12 @@ def embed_fn_for(config: EvalConfig) -> Any | None:
     """
     if not config.embedding_model:
         return None
-    return retrieval_mod.embed
+    endpoint = Endpoint(base_url=config.base_url, api_key=_read_api_key(config.api_key_env))
+
+    def _embed(texts: list[str], model: str) -> list[list[float]]:
+        return retrieval_mod.embed(texts, model, endpoint=endpoint)
+
+    return _embed
 
 
 def plan(
@@ -105,6 +131,8 @@ def plan(
         judge_model=judge_model,
         embed_model=config.embedding_model or "lexical",
         whole_page=whole_page,
+        input_rate=config.input_cost_per_mtok,
+        output_rate=config.output_cost_per_mtok,
     )
     note = ""
     if facts_questions is None and not rendered_available:
@@ -142,8 +170,29 @@ def run(
     else:
         judge_note = ""
 
-    answerer = LLMClient(model=model, cache=cache, use_cache=use_cache)
-    judge = LLMClient(model=judge_model, cache=cache, use_cache=use_cache)
+    endpoint = Endpoint(
+        base_url=config.base_url,
+        api_key=_read_api_key(config.api_key_env),
+    )
+    # Named fields, not **kwargs: unpacking a dict into the dataclass hides the
+    # field names from the type checker, and pyright rightly rejects it.
+    input_rate, output_rate = _pricing(config)
+    answerer = LLMClient(
+        model=model,
+        cache=cache,
+        use_cache=use_cache,
+        endpoint=endpoint,
+        input_cost_per_mtok=input_rate,
+        output_cost_per_mtok=output_rate,
+    )
+    judge = LLMClient(
+        model=judge_model,
+        cache=cache,
+        use_cache=use_cache,
+        endpoint=endpoint,
+        input_cost_per_mtok=input_rate,
+        output_cost_per_mtok=output_rate,
+    )
     embed_fn = embed_fn_for(config)
 
     page_results: list[runner_mod.PageResult] = []
@@ -259,6 +308,51 @@ def check_budget(estimate: cost_mod.CostEstimate, max_cost: float | None) -> Non
             f"Estimated cost ${estimate.cost_usd:.4f} exceeds --max-cost "
             f"${max_cost:.2f}. Lower --questions, --trials, or --eval-pages."
         )
+
+
+def unpriced_models(config: EvalConfig) -> list[str]:
+    """Every model this run would use whose price we do not know.
+
+    Reported before any spend, so the user can supply prices rather than
+    discover the gap afterwards.
+    """
+    models = [resolve_model(config)]
+    judge = config.judge_model or config.model
+    if judge:
+        models.append(judge)
+    if config.embedding_model:
+        models.append(config.embedding_model)
+    input_rate, output_rate = _pricing(config)
+    seen: list[str] = []
+    for model in models:
+        priced = known_price(model, input_override=input_rate, output_override=output_rate)
+        if priced is None and model not in seen:
+            seen.append(model)
+    return seen
+
+
+def enforce_pricing_known(config: EvalConfig, max_cost: float | None) -> None:
+    """With --max-cost set, refuse to run on a model with no known price.
+
+    Failing is acceptable; spending far more than the user expected is not.
+    Supply prices with `[eval] input_cost_per_mtok` / `output_cost_per_mtok`, or
+    drop --max-cost to accept that the reported cost is unknown.
+    """
+    if max_cost is None:
+        return
+    unknown = unpriced_models(config)
+    if not unknown:
+        return
+    lines = "\n".join(f"  {m}{' (embedding)' if is_embedding_model(m) else ''}" for m in unknown)
+    raise UnknownPricing(
+        f"--max-cost was set to ${max_cost:.2f}, but no price is known for:\n{lines}\n\n"
+        "Refusing to run, because a spending ceiling cannot be enforced against an "
+        "unknown cost. Either supply the price in geoctl.toml:\n"
+        "  [eval]\n"
+        "  input_cost_per_mtok = 0.59\n"
+        "  output_cost_per_mtok = 0.79\n"
+        "or drop --max-cost to run with the cost reported as unknown."
+    )
 
 
 __all__ = [
