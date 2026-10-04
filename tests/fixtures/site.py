@@ -354,6 +354,35 @@ def waf_site(site: FixtureSite | None = None) -> FixtureSite:
     return site
 
 
+# The exact Chrome-125 string geoctl used to send as its browser baseline. Sites
+# running UA-reputation middleware refuse this while serving every other browser
+# and bot (issue #40).
+FINGERPRINTED_CHROME_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
+
+
+def ua_fingerprint_site(site: FixtureSite | None = None) -> FixtureSite:
+    """Row 6 variant: refuses one exact browser UA, serves every bot normally.
+
+    This is the failure mode of issue #40. If the baseline geoctl compares
+    against is itself blocked, ACC-002 reports that AI bots are blocked when
+    they are not — so this fixture must NOT produce an ACC-002 failure.
+    """
+    site = site or good_site()
+    site.add(
+        "/",
+        Route(
+            body=GOOD_PAGE.encode(),
+            by_agent={FINGERPRINTED_CHROME_UA: (b"", 403, None)},
+        ),
+    )
+    site.add("/robots.txt", Route(body=ROBOTS_ALLOW_ALL.encode(), content_type="text/plain"))
+    site.add("/sitemap.xml", Route(body=SITEMAP.encode(), content_type="application/xml"))
+    return site
+
+
 def challenge_site(site: FixtureSite | None = None) -> FixtureSite:
     """Row 7: a bot-challenge page returned with HTTP 200."""
     site = site or FixtureSite()

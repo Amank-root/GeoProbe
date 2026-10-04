@@ -60,6 +60,13 @@ FIXTURES: tuple[tuple[str, object, bool, str], ...] = (
         False,
         "row 6: ACC-002 fails even though robots.txt allows everything",
     ),
+    # --- 6 variant: refuses one exact browser UA, serves every bot (issue #40)
+    (
+        "ua-fingerprint-block",
+        S.ua_fingerprint_site,
+        False,
+        "issue #40: a fingerprintable browser baseline must not invert ACC-002",
+    ),
     # --- 7: challenge page returned with 200 (row 7)
     (
         "challenge-page-200",

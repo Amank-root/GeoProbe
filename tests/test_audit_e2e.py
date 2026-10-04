@@ -134,6 +134,29 @@ def test_challenge_page_with_200_is_caught(serve, allow_private_config):
     assert any(d.get("challenge") for d in acc003.evidence["details"])
 
 
+def test_a_blocked_fingerprintable_browser_ua_does_not_fail_parity(serve, allow_private_config):
+    """Regression for issue #40.
+
+    Some bot-protection middleware refuses one exact, fingerprintable browser UA
+    while serving every AI bot normally. If geoctl's browser baseline is that UA,
+    ACC-002 compares good bots against a refused probe and reports that AI bots
+    are blocked — the inverse of the truth. The baseline must survive this.
+    """
+    from fixtures.site import ua_fingerprint_site
+
+    url = serve(ua_fingerprint_site()) + "/"
+    report = build_report(run_audit(allow_private_config, url), allow_private_config)
+
+    parity = by_id(report, "ACC-002")
+    assert parity.status != "fail", (
+        "ACC-002 must not report AI bots as blocked when only the browser "
+        f"baseline is refused: {parity.message}"
+    )
+    assert parity.evidence["divergence"] == [], (
+        f"unexpected divergence: {parity.evidence['divergence']}"
+    )
+
+
 def test_missing_robots_passes_as_default_allow(serve, allow_private_config):
     site = good_site()
     del site.routes["/robots.txt"]
