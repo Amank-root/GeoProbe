@@ -46,6 +46,14 @@ an LLM key is present and is skipped with a one-line note when none is found. Th
 deterministic checks are the secondary, always-free layer. Rationale in
 [ADR-012](DECISIONS.md#adr-012-the-eval-is-on-by-default-when-a-key-is-present).
 
+**The key alone is enough.** When `--model` is not given, geoctl detects which
+provider key is set and picks a model that key can actually call, including the
+`--base-url` for OpenAI-compatible hosts LiteLLM cannot route on its own
+(`src/geoctl/llm/providers.py`). A suffixed key such as `GEMINI_API_KEY_1` counts.
+Passing `--base-url` without `--api-key-env` infers the key variable from the host;
+an unrecognised host infers nothing, rather than guessing and sending the wrong
+credential somewhere.
+
 | Flag | Default | Description |
 |---|---|---|
 | `--max-pages N` | 10 | Pages to audit for deterministic checks (start URL + sitemap sample) |
@@ -78,7 +86,7 @@ Eval flags:
 | `--facts PATH` | none | Facts file used as ground truth (YAML). Strongest signal — prefer it |
 | `--dry-run` | off | Print estimated tokens and cost; make no LLM calls |
 | `--max-cost USD` | none | Abort before exceeding this estimated cost. **Hard-fails if any selected model's price is unknown** |
-| `--embedding-model NAME` | `openai/text-embedding-3-small` | Embedding model for retrieval. `gemini/gemini-embedding-001` is the cheap alternative |
+| `--embedding-model NAME` | the detected provider's embedding model | Embedding model for retrieval. Falls back to `lexical (no embedding provider)` when no provider is detected |
 | `--base-url URL` | none | Any OpenAI-compatible endpoint: Groq, NVIDIA NIM, Together, OpenRouter, vLLM, Ollama |
 | `--api-key-env NAME` | provider default | Environment variable holding the key. The key is never read from config |
 | `--input-cost-per-mtok N` | none | Price per 1M input tokens, for a model LiteLLM does not price |
@@ -119,7 +127,31 @@ geoctl generate robots   https://example.com --policy allow-search-block-trainin
 geoctl generate jsonld   https://example.com --type Organization
 ```
 
-Generates starter files from the crawl. Output is a proposal: never overwrites an existing file without `--force`.
+Generates starter files from the crawl. Output is a proposal: never overwrites an
+existing file without `--force`.
+
+| Generator | Derived from | Never does |
+|---|---|---|
+| `llms-txt` | Pages the crawl actually found, their real titles, grouped by top-level path | List a page it did not fetch, or a page with no extractable text |
+| `robots` | A policy preset, plus the site's current `Sitemap:` lines | Merge into an existing `robots.txt` — it is preserved verbatim in a comment instead |
+| `jsonld` | Fields the crawl can observe (name, url, headline, description) | Guess a `logo` or `sameAs` URL; unfillable fields are listed under `_geoctl_todo` |
+
+Shared flags: `--output PATH`, `--max-pages N`, `--force`, `--timeout SECONDS`,
+`--allow-private`, `--no-cache`. Defaults write to the working directory
+(`robots.txt`, `llms.txt`, `<type>.jsonld.json`), never to the filesystem root.
+
+| Flag | Values | Default |
+|---|---|---|
+| `--policy` | `allow-all`, `allow-search-block-training`, `block-all-ai` | `allow-search-block-training` |
+| `--type` | `Organization`, `WebSite`, `Article` | `Organization` |
+| `--crawl-delay` | integer seconds | omitted |
+
+`generate` fetches, so it obeys the same safety rules as `audit`: a loopback target
+without `--allow-private` exits 6, not 1 or 3.
+
+**Nothing these produce is claimed to improve a score.** `llms.txt` stays
+informational per CHECKS §7, and no generator emits a claim about citations or
+ranking. Each output carries its own caveats; the CLI repeats them on stdout.
 
 ### 2.7 `geoctl fix` (v0.3)
 

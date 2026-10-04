@@ -89,20 +89,28 @@ geoctl audit https://example.com --facts facts.yaml
 ```
 
 Any OpenAI-compatible provider works — Groq, NVIDIA NIM, Gemini, Together, OpenRouter,
-or a self-hosted vLLM or Ollama:
+or a self-hosted vLLM or Ollama. **Setting the key is usually all you need**: geoctl
+picks a model that key can call, and the matching embedding model with it.
 
 ```bash
-# Gemini end to end. gemini-embedding-001 is $0.15/1M tokens and charges on input only.
+# Just the key. Model and embedding model are chosen for you.
+export NVIDIA_API_KEY=...
+geoctl audit https://example.com
+
+# Gemini, chosen explicitly to use a different judge.
+# gemini-embedding-001 is $0.15/1M tokens and charges on input only.
 export GEMINI_API_KEY=...
 geoctl audit https://example.com --model gemini/gemini-2.5-flash \
-    --judge-model gemini/gemini-2.5-pro \
-    --embedding-model gemini/gemini-embedding-001
+    --judge-model gemini/gemini-2.5-pro
 
-# A host LiteLLM has no provider for, via an explicit endpoint
+# An explicit endpoint, for a host or model geoctl does not know about
 export NVIDIA_API_KEY=...
 geoctl audit https://example.com \
     --base-url https://integrate.api.nvidia.com/v1 --api-key-env NVIDIA_API_KEY
 ```
+
+Check what geoctl sees in your environment with `geoctl doctor --test-keys`, which
+makes one real call per key using a model that key can reach.
 
 Cost control, because at the defaults this is not a free operation:
 
@@ -129,6 +137,23 @@ geoctl telemetry show                              # exactly what would be sent
 geoctl cache stats
 ```
 
+## Generate starter files
+
+`geoctl generate` writes a proposal derived from what the audit actually found. It never
+overwrites an existing file without `--force`, and it never claims the result will change
+how your site is cited — per [ADR-010](docs/DECISIONS.md) and CHECKS §7, `llms.txt` stays
+informational, because no major AI platform documents fetching it from third-party sites.
+
+```bash
+geoctl generate llms-txt https://example.com --output public/llms.txt
+geoctl generate robots   https://example.com --policy allow-search-block-training
+geoctl generate jsonld   https://example.com --type Organization
+```
+
+What each one will not do: list a page the crawl did not fetch; merge into an existing
+`robots.txt` (it is preserved verbatim in a comment instead); or guess a `logo` or `sameAs`
+URL. Unfillable JSON-LD fields are listed under `_geoctl_todo` so you can see what is left.
+
 One thing worth knowing before you gate on the eval: at the default 50 questions the
 95% confidence interval is about **±14 points**, so the threshold gate defaults to a
 ±15 margin and will decline to fail on a wide interval. To gate more tightly, raise
@@ -150,6 +175,12 @@ number, so you can always see which signal moved:
 - a deterministic **access / rendering / discovery score**, and
 - an **answerability score** with variance, abstention and hallucination rates, and
   context recall.
+
+Answerability depends on the model you choose, and reasoning models cost more time and
+tokens than plain chat models for the same run. A run that could not complete because a
+response hit the model's token limit is reported as an *answerer error*, not as a failure of
+your content — so an unusually low score is worth checking against the reported model and
+errors before acting on it.
 
 ## Documentation
 
