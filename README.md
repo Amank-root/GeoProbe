@@ -118,6 +118,12 @@ It does not stop someone reimplementing the same ideas from scratch — that is 
 accepted limit, and the name is not being trademarked. A fork must rename and cannot pass
 itself off as `geoctl`. Reasoning in [ADR-004](docs/DECISIONS.md#adr-004-license-is-agpl-30-only).
 
+## Contributing
+
+Contributions are welcome, including first-time ones. See [CONTRIBUTING.md](CONTRIBUTING.md) —
+there is a table of ways to help ranked by effort, from reporting a false positive
+(about 30 minutes) to adding a check. No CLA or DCO sign-off required.
+
 ## Won't do
 
 - No guarantees of citations or rankings.

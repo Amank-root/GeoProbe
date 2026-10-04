@@ -179,6 +179,85 @@ product exists to catch.
 
 ---
 
+## ADR-016: Main-content extraction uses trafilatura, with a documented failure mode
+
+**Status:** Accepted
+
+**Context.** Milestone 0 required a spike on trafilatura output quality across varied sites
+(docs, blog, SPA, e-commerce). This choice underwrites the crawler view itself: REN-001
+(weight 20) is computed from extracted text, REN-002 (weight 4) checks that extraction
+succeeded at all, and the entire answerability eval chunk whatever this returns. If the
+crawler view is wrong, every downstream number is wrong in the same direction and the tool
+cannot tell the user.
+
+**Method.** trafilatura 2.3.0 run with `output_format="markdown"`, over eight live sites
+spanning documentation (Sphinx, Docusaurus), a blog, an encyclopedia, a client-rendered news
+front page, a browser reference site, a code-hosting page, and e-commerce. Each page was
+extracted twice — `favor_precision=True` and `favor_recall=True` — and the result compared
+against raw HTML size to see how much of the page is treated as main content.
+
+**Result.**
+
+| Category | Raw HTML | Precision | Recall | Extracted |
+|---|---|---|---|---|
+| Docs (Sphinx) | 177 KB | 42.6 KB | 43.7 KB | 24.0% |
+| Docs (Docusaurus) | 285 KB | 20.7 KB | 21.0 KB | 7.3% |
+| Encyclopedia | 235 KB | 26.6 KB | 27.2 KB | 11.3% |
+| Blog | 64 KB | 3.9 KB | 4.1 KB | 6.1% |
+| Reference (MDN) | 186 KB | 4.5 KB | 4.9 KB | 2.4% |
+| Code hosting | 384 KB | 6.7 KB | 6.7 KB | 1.8% |
+| News (client-rendered) | 367 KB | **0.2 KB** | 6.8 KB | 0.1% |
+| E-commerce | 15 KB | **0** | 0.4 KB | 0.0% |
+
+Three findings:
+
+1. **For server-rendered content, quality is good and the precision default is the right
+   one.** Where content exists in the HTML, trafilatura finds it and discards navigation,
+   footers, and cookie chrome. The two low-percentage "failures" are not failures: MDN's
+   2.4% is a 186 KB page whose `<main>` element is 42 KB, most of the rest being sidebar
+   navigation, and the extracted text is the actual reference content. Extraction ratios
+   must not be read as extraction quality.
+
+2. **The real failure mode is client-side rendering, and it is severe.** The news front
+   page yielded 207 bytes under `favor_precision` against 6,769 under `favor_recall` — a
+   **33x difference from settings alone**, on the same HTML. The precision default
+   discards content that genuinely exists in the response.
+
+3. **Precision versus recall must therefore be a per-page decision, not a global default.**
+   A single fixed setting would report an empty crawler view for large JS-heavy pages and a
+   healthy one for the same site with rendering enabled.
+
+**Decision.** Use **trafilatura** for main-content extraction, with three implementation
+requirements that follow from the data:
+
+- **Adaptive extraction.** Run `favor_recall` first; if it returns less than
+  `retrieval`-relevant content (a character floor), retry with `favor_precision` and keep
+  whichever extracts more. Never report an empty crawler view while either setting yields
+  text.
+- **Record which setting produced the text** in the report, because a crawler view built
+  under `favor_recall` is less precise about what a real crawler would treat as main
+  content, and that difference matters when interpreting a score.
+- **Report the extraction ratio** (`extracted_chars / html_chars`) as evidence. A very low
+  ratio on a large page is the observable signature of client-side rendering, and it is
+  the same fact REN-001 measures — useful as a cross-check rather than a second opinion.
+
+**Consequences.**
+- trafilatura is already pinned (`>=1.12`); no dependency change. The spike ran on 2.3.0.
+- REN-001 gains a free corroborating signal: if the extraction ratio is near zero and the
+  page is large, that is strong evidence of client-side-only content, independent of the
+  Playwright comparison.
+- The `favor_recall` path is a deliberate accuracy/precision trade. It is the right default
+  for this product because a *missing* span is indistinguishable from a bad score, whereas
+  a slightly over-inclusive crawler view only makes the eval marginally harsher — the
+  property [ADR-011](DECISIONS.md#adr-011-the-crawler-view-is-a-retrieval-simulation-not-a-whole-page-prompt)
+  depends on.
+- The e-commerce case (0 chars under precision, 414 under recall) shows that some sites
+  have no extractable main content at all. REN-002 must treat "extraction yields nothing on
+  a page expected to have content" as a `fail` with evidence, not as an empty success.
+- **Known limitation to state honestly:** this spike measured whether extraction returns the
+  main content, not whether it matches what any specific AI crawler indexes. That remains an
+  approximation, as ADR-006 and ADR-011 already record.
+
 ## ADR-014: Ground truth for the eval prefers an independent facts file
 
 **Status:** Accepted
