@@ -88,6 +88,22 @@ $EDITOR facts.yaml
 geoctl audit https://example.com --facts facts.yaml
 ```
 
+Any OpenAI-compatible provider works — Groq, NVIDIA NIM, Gemini, Together, OpenRouter,
+or a self-hosted vLLM or Ollama:
+
+```bash
+# Gemini end to end. gemini-embedding-001 is $0.15/1M tokens and charges on input only.
+export GEMINI_API_KEY=...
+geoctl audit https://example.com --model gemini/gemini-2.5-flash \
+    --judge-model gemini/gemini-2.5-pro \
+    --embedding-model gemini/gemini-embedding-001
+
+# A host LiteLLM has no provider for, via an explicit endpoint
+export NVIDIA_API_KEY=...
+geoctl audit https://example.com \
+    --base-url https://integrate.api.nvidia.com/v1 --api-key-env NVIDIA_API_KEY
+```
+
 Cost control, because at the defaults this is not a free operation:
 
 ```bash

@@ -16,7 +16,10 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from ..llm.client import Endpoint
 
 CHUNK_TARGET_TOKENS = 400
 CHUNK_OVERLAP_PCT = 10
@@ -194,13 +197,26 @@ def _overlap_tail(parts: list[str], overlap_pct: int, target_tokens: int) -> lis
     return tail
 
 
-def embed(texts: list[str], model: str = DEFAULT_EMBEDDING) -> list[list[float]]:
-    """Embed a batch. One cheap call per page (EVALS §3.3)."""
+def embed(
+    texts: list[str],
+    model: str = DEFAULT_EMBEDDING,
+    endpoint: Endpoint | None = None,
+) -> list[list[float]]:
+    """Embed a batch. One cheap call per page (EVALS §3.3).
+
+    `endpoint` lets any OpenAI-compatible host serve embeddings, so the embedding
+    model does not have to come from the same provider as the answerer.
+    """
     if not texts:
         return []
     import litellm
 
-    response = litellm.embedding(model=model, input=texts)
+    kwargs: dict[str, Any] = {"model": model, "input": texts}
+    if endpoint is not None and endpoint.base_url:
+        kwargs["api_base"] = endpoint.base_url
+    if endpoint is not None and endpoint.api_key:
+        kwargs["api_key"] = endpoint.api_key
+    response = litellm.embedding(**kwargs)
     data = getattr(response, "data", None) or []
     return [[float(x) for x in item["embedding"]] for item in data]
 

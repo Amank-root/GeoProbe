@@ -15,6 +15,7 @@ from typer.testing import CliRunner
 from fixtures.site import good_site
 from geoctl.cli import (
     EXIT_BLOCKED,
+    EXIT_COST,
     EXIT_OK,
     EXIT_THRESHOLD,
     EXIT_USAGE,
@@ -344,3 +345,160 @@ def test_a_reported_page_count_matches_the_sampled_pages(local_site):
 def test_no_cache_flag_still_produces_a_report(local_site):
     result = run("audit", local_site, "--allow-private", "--eval", "false", "--no-cache")
     assert result.exit_code == EXIT_OK
+
+
+# ------------------------------------------- custom endpoints and cost ceiling
+
+
+NEW_EVAL_FLAGS = (
+    "--embedding-model",
+    "--base-url",
+    "--api-key-env",
+    "--input-cost-per-mtok",
+    "--output-cost-per-mtok",
+)
+
+
+def test_the_new_endpoint_flags_exist():
+    """FR-18 promises any model reachable through the abstraction layer.
+
+    Asserted against the command's own parameter metadata rather than the
+    rendered --help box: Rich wraps help to the terminal width, so a flag name
+    can be split across lines, which would make this assertion depend on the
+    runner's width rather than on the code.
+    """
+    import inspect
+
+    from geoctl.cli import _audit_command
+
+    # Typer derives each CLI flag from the parameter name, so the signature is
+    # the authoritative list of what the command accepts.
+    declared = {
+        f"--{name.replace('_', '-')}" for name in inspect.signature(_audit_command).parameters
+    }
+    for flag in NEW_EVAL_FLAGS:
+        assert flag in declared, f"{flag} is not a real option"
+
+
+def test_max_cost_hard_fails_on_an_unpriced_model(local_site, monkeypatch):
+    """A ceiling that permits unknown spend is not a ceiling (issue #43)."""
+    monkeypatch.setenv("MADEUP_API_KEY", "not-a-real-key")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--eval",
+        "true",
+        "--model",
+        "madeup/unpriced-9000",
+        "--max-cost",
+        "1.00",
+        "--questions",
+        "2",
+        "--trials",
+        "1",
+    )
+    assert result.exit_code == EXIT_COST
+    assert "no price is known" in combined(result)
+    assert "Refusing to run" in combined(result)
+
+
+def test_supplying_prices_lets_the_run_proceed(local_site, monkeypatch):
+    monkeypatch.setenv("MADEUP_API_KEY", "not-a-real-key")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--dry-run",
+        "--eval",
+        "true",
+        "--model",
+        "madeup/unpriced-9000",
+        "--max-cost",
+        "1.00",
+        "--questions",
+        "5",
+        "--trials",
+        "2",
+        "--input-cost-per-mtok",
+        "0.50",
+        "--output-cost-per-mtok",
+        "1.00",
+    )
+    assert result.exit_code == EXIT_OK
+    text = combined(result)
+    assert "estimated cost" in text
+    # A supplied price must reach the estimate, not silently become $0.
+    assert "$0.0000" not in text
+
+
+def test_a_priced_embedding_model_satisfies_the_guard(local_site, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "not-a-real-key")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--dry-run",
+        "--eval",
+        "true",
+        "--model",
+        "gemini/gemini-2.5-flash",
+        "--embedding-model",
+        "gemini/gemini-embedding-001",
+        "--max-cost",
+        "1.00",
+        "--questions",
+        "5",
+        "--trials",
+        "1",
+    )
+    assert result.exit_code == EXIT_OK
+
+
+def test_an_unpriced_embedding_model_also_blocks(local_site, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "not-a-real-key")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--dry-run",
+        "--eval",
+        "true",
+        "--model",
+        "gemini/gemini-2.5-flash",
+        "--embedding-model",
+        "madeup/unknown-embed",
+        "--max-cost",
+        "1.00",
+        "--questions",
+        "5",
+        "--trials",
+        "1",
+    )
+    assert result.exit_code == EXIT_COST
+    assert "unknown-embed" in combined(result)
+
+
+def test_base_url_is_accepted_and_reaches_the_report(local_site, monkeypatch):
+    monkeypatch.setenv("MADEUP_API_KEY", "not-a-real-key")
+    result = run(
+        "audit",
+        local_site,
+        "--allow-private",
+        "--dry-run",
+        "--eval",
+        "true",
+        "--model",
+        "madeup/unpriced-9000",
+        "--base-url",
+        "https://integrate.api.nvidia.com/v1",
+        "--api-key-env",
+        "MADEUP_API_KEY",
+        "--questions",
+        "5",
+        "--trials",
+        "1",
+    )
+    assert result.exit_code == EXIT_OK
+    # No secret may appear in the output.
+    assert "not-a-real-key" not in combined(result)

@@ -34,7 +34,42 @@ FALLBACK_PRICING: dict[str, tuple[float, float]] = {
     "claude-3-5-haiku": (0.80, 4.00),
     "claude-sonnet-4": (3.00, 15.00),
     "gemini-2.0-flash": (0.10, 0.40),
+    # Groq published pay-as-you-go rates, USD per 1M tokens.
+    "llama-3.3-70b-versatile": (0.59, 0.79),
+    "llama-3.1-8b-instant": (0.05, 0.08),
+    "llama-3.1-70b-versatile": (0.59, 0.79),
+    "gpt-oss-20b": (0.10, 0.50),
+    "gpt-oss-120b": (0.15, 0.75),
+    # Gemini. gemini-embedding-001 is the current embedding model and charges on
+    # input only; text-embedding-004 is the older 768-dimension model, kept
+    # because existing reports may reference it.
+    "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-2.5-pro": (1.25, 10.00),
+    "gemini-embedding-001": (0.15, 0.00),
+    "text-embedding-004": (0.025, 0.00),
+    # Embedding models LiteLLM does not price, including our own default.
+    # Without these the eval would report $0.00 for embedding and --max-cost
+    # could not protect the user.
+    "text-embedding-3-small": (0.02, 0.00),
+    "text-embedding-3-large": (0.13, 0.00),
+    "text-embedding-ada-002": (0.10, 0.00),
 }
+
+# Embedding models charge on input only, so an output rate of 0 is correct
+# rather than missing. `is_embedding_model` lets the cost guard explain that a
+# zero output figure is not an unknown price.
+EMBEDDING_PREFIXES = (
+    "text-embedding",
+    "gemini-embedding",
+    "embedding-001",
+    "embedding-004",
+    "embed-",
+)
+
+
+def is_embedding_model(model: str) -> bool:
+    short = model.split("/")[-1].lower()
+    return short.startswith(EMBEDDING_PREFIXES)
 
 
 class ProviderError(Exception):
@@ -43,6 +78,16 @@ class ProviderError(Exception):
 
 class CostLimitExceeded(Exception):
     """Exit code 5."""
+
+
+class UnknownPricing(Exception):
+    """A spending ceiling was requested but the price is unknown.
+
+    Raised instead of proceeding. A `--max-cost` guard that treats an unknown
+    price as zero is not a ceiling: the user set a limit precisely to be
+    stopped, and silently spending an unbounded amount is worse than failing
+    (issue #43).
+    """
 
 
 @dataclass
@@ -61,6 +106,24 @@ class Usage:
         self.calls += other.calls
 
 
+@dataclass(frozen=True)
+class Endpoint:
+    """Where to send a request: an OpenAI-compatible host and its key.
+
+    LiteLLM has first-class providers for OpenAI, Groq, Anthropic and others, so
+    those need only a `provider/model` string. NVIDIA NIM and self-hosted
+    vLLM/Ollama are absent from its provider list and are reachable only by
+    passing an explicit base_url (issue #43).
+    """
+
+    base_url: str | None = None
+    api_key: str | None = None
+
+    @property
+    def is_custom(self) -> bool:
+        return bool(self.base_url)
+
+
 @dataclass
 class LLMClient:
     """A cached, retrying, usage-accounting chat client."""
@@ -71,9 +134,30 @@ class LLMClient:
     cache: Cache | None = None
     use_cache: bool = True
     usage: Usage = field(default_factory=Usage)
+    endpoint: Endpoint = field(default_factory=Endpoint)
+    # Explicit prices per 1M tokens, for models LiteLLM does not know about.
+    input_cost_per_mtok: float | None = None
+    output_cost_per_mtok: float | None = None
+    # Model strings are part of the cache key only when two endpoints could
+    # serve the same name differently.
     _recorded_cost: dict[str, float] = field(default_factory=dict)
 
     # ---------------------------------------------------------------- calls
+
+    def key(self, *parts: Any) -> tuple[Any, ...]:
+        """Cache key for a call. Public so it can be tested directly.
+
+        The endpoint is part of it: the same model name served by two hosts is
+        not the same model, and reusing a cached answer across them would be a
+        reproducibility bug, not an optimisation.
+        """
+        return (
+            self.model,
+            self.temperature,
+            self.seed,
+            *parts,
+            self.endpoint.base_url,
+        )
 
     def complete(
         self,
@@ -86,7 +170,7 @@ class LLMClient:
     ) -> str:
         """One completion, cached. Returns the assistant's text."""
         target = model or self.model
-        key = (target, self.temperature, self.seed, max_tokens, system, prompt)
+        key = (target, *self.key(max_tokens, system, prompt))
         cached = self.cache.get(NS_LLM, *key) if (self.use_cache and self.cache) else None
         if isinstance(cached, dict) and "text" in cached:
             replay = Usage(
@@ -149,9 +233,13 @@ class LLMClient:
                     kwargs["max_tokens"] = max_tokens
                 if expect_json:
                     kwargs["response_format"] = {"type": "json_object"}
+                if self.endpoint.base_url:
+                    kwargs["api_base"] = self.endpoint.base_url
+                if self.endpoint.api_key:
+                    kwargs["api_key"] = self.endpoint.api_key
                 response = litellm.completion(**kwargs)
                 text = _message_text(response)
-                usage = _usage_from(response, model)
+                usage = _usage_from(response, model, self)
                 return text, usage
             except Exception as exc:
                 last_error = exc
@@ -168,17 +256,24 @@ def _message_text(response: Any) -> str:
     return str(content or "").strip()
 
 
-def _usage_from(response: Any, model: str) -> Usage:
+def _usage_from(response: Any, model: str, client: LLMClient | None = None) -> Usage:
     input_tokens = 0
     output_tokens = 0
     raw = getattr(response, "usage", None)
     if raw is not None:
         input_tokens = int(getattr(raw, "prompt_tokens", 0) or 0)
         output_tokens = int(getattr(raw, "completion_tokens", 0) or 0)
+    cost = estimate_cost(
+        model,
+        input_tokens,
+        output_tokens,
+        input_override=(client.input_cost_per_mtok if client else None),
+        output_override=(client.output_cost_per_mtok if client else None),
+    )
     return Usage(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        cost_usd=estimate_cost(model, input_tokens, output_tokens),
+        cost_usd=cost,
     )
 
 
@@ -206,30 +301,64 @@ def _classify(exc: Exception | None) -> str:
     return f"provider error after {MAX_RETRIES} attempts: {name}: {exc}"
 
 
-def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    """Estimated USD. Never presented as billing (ADR-015).
+def known_price(
+    model: str,
+    *,
+    input_override: float | None = None,
+    output_override: float | None = None,
+) -> tuple[float, float] | None:
+    """Price per 1M tokens for a model, or None when we do not know it.
 
-    Prefers LiteLLM's own model map; falls back to a small local table.
+    Resolution order: explicit user override, the local table, then LiteLLM's
+    model table. Returning None matters: a model with no known price must not be
+    reported as free. The override is consulted here too, so that the
+    `--max-cost` guard and the cost estimator agree on what "known" means.
     """
-    if not input_tokens and not output_tokens:
-        return 0.0
-    try:
-        import litellm
-
-        in_cost, out_cost = litellm.cost_per_token(
-            model=model, prompt_tokens=input_tokens, completion_tokens=output_tokens
-        )
-        total = float(in_cost or 0.0) + float(out_cost or 0.0)
-        if total > 0:
-            return round(total, 6)
-    except Exception:
-        pass
-
+    if input_override is not None and output_override is not None:
+        return input_override, output_override
     short = model.split("/")[-1].lower()
     for prefix, (in_rate, out_rate) in FALLBACK_PRICING.items():
         if short.startswith(prefix):
-            return round((input_tokens / 1e6) * in_rate + (output_tokens / 1e6) * out_rate, 6)
-    return 0.0
+            return in_rate, out_rate
+    try:
+        import litellm
+
+        in_cost, out_cost = litellm.model_cost.get(model, (None, None))
+        if in_cost is not None and out_cost is not None:
+            # LiteLLM stores per-token prices; convert to per-million.
+            return float(in_cost) * 1e6, float(out_cost) * 1e6
+    except Exception:
+        pass
+    return None
+
+
+def estimate_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    *,
+    input_override: float | None = None,
+    output_override: float | None = None,
+) -> float:
+    """Estimated USD, or 0.0 when the price is genuinely unknown.
+
+    Never presents an unknown price as a real one — callers check
+    `known_price()` and report `cost_note` instead. Cost figures are always
+    estimates, never billing (ADR-015).
+    """
+    if not input_tokens and not output_tokens:
+        return 0.0
+
+    if input_override is not None and output_override is not None:
+        return round(
+            (input_tokens / 1e6) * input_override + (output_tokens / 1e6) * output_override, 6
+        )
+
+    price = known_price(model, input_override=input_override, output_override=output_override)
+    if price is None:
+        return 0.0
+    in_rate, out_rate = price
+    return round((input_tokens / 1e6) * in_rate + (output_tokens / 1e6) * out_rate, 6)
 
 
 def count_tokens(text: str, model: str = "gpt-4o-mini") -> int:

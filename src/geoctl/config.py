@@ -42,6 +42,19 @@ class EvalConfig(BaseModel):
     enabled: EvalMode = "auto"
     model: str | None = None
     judge_model: str | None = None
+    # Any OpenAI-compatible host: Groq, NVIDIA NIM, Together, OpenRouter, vLLM,
+    # Ollama. LiteLLM has first-class providers for some of these, but not all,
+    # so an explicit base_url is what makes the rest reachable (issue #43).
+    base_url: str | None = None
+    # Name of the environment variable holding the key. The key itself is never
+    # read from config, consistent with the rule that secrets do not live in
+    # geoctl.toml.
+    api_key_env: str | None = None
+    # Prices per 1M tokens, for providers LiteLLM does not know. Without this,
+    # an unknown model reports a cost of zero, which would silently defeat
+    # --max-cost.
+    input_cost_per_mtok: float | None = None
+    output_cost_per_mtok: float | None = None
     eval_pages: int = 3
     questions: int = 50
     trials: int = 3
@@ -106,6 +119,8 @@ _KEY_PATTERNS = (
 
 # Environment variables that supply provider keys. Read for presence only.
 PROVIDER_KEY_VARS = (
+    "GROQ_API_KEY",
+    "NVIDIA_API_KEY",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "GEMINI_API_KEY",
@@ -175,6 +190,8 @@ def _coerce_env() -> dict[str, Any]:
         out.setdefault("eval", {})["model"] = v
     if v := os.environ.get("GEOCTL_JUDGE_MODEL"):
         out.setdefault("eval", {})["judge_model"] = v
+    if v := os.environ.get("GEOCTL_BASE_URL"):
+        out.setdefault("eval", {})["base_url"] = v
     if v := os.environ.get("GEOCTL_QUESTIONS"):
         out.setdefault("eval", {})["questions"] = int(v)
     if v := os.environ.get("GEOCTL_TRIALS"):

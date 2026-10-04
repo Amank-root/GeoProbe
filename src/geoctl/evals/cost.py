@@ -76,6 +76,8 @@ def estimate(
     judge_model: str = "",
     embed_model: str = "",
     whole_page: bool = False,
+    input_rate: float | None = None,
+    output_rate: float | None = None,
 ) -> CostEstimate:
     """Estimate tokens and cost for an eval run without calling any model.
 
@@ -120,14 +122,26 @@ def estimate(
         answer_output = question_trials * 120
         total.input_tokens += answer_input
         total.output_tokens += answer_output
-        total.cost_usd += estimate_cost(answer_model, answer_input, answer_output)
+        total.cost_usd += estimate_cost(
+            answer_model,
+            answer_input,
+            answer_output,
+            input_override=input_rate,
+            output_override=output_rate,
+        )
 
         total.judge_calls += question_trials
         judge_input = question_trials * 200
         judge_output = question_trials * 40
         total.input_tokens += judge_input
         total.output_tokens += judge_output
-        total.cost_usd += estimate_cost(judge_model or answer_model, judge_input, judge_output)
+        total.cost_usd += estimate_cost(
+            judge_model or answer_model,
+            judge_input,
+            judge_output,
+            input_override=input_rate,
+            output_override=output_rate,
+        )
 
     total.cost_usd = round(total.cost_usd, 6)
     return total

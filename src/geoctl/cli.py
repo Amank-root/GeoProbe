@@ -36,7 +36,7 @@ from .evals import engine as eval_engine
 from .evals import load_facts
 from .evals.runner import decide_threshold
 from .fetch.ssrf import BlockedTarget as SSRFBlocked
-from .llm.client import CostLimitExceeded, ProviderError
+from .llm.client import CostLimitExceeded, ProviderError, UnknownPricing
 
 EXIT_OK = 0
 EXIT_THRESHOLD = 1
@@ -177,6 +177,23 @@ def _audit_command(
     trials: int = typer.Option(None, help="Repeated trials (default 3)"),
     top_k: int = typer.Option(None, help="Chunks retrieved per question (default 5)"),
     facts: str = typer.Option(None, help="Facts file (YAML) used as ground truth"),
+    embedding_model: str = typer.Option(
+        None, help="Embedding model for retrieval, e.g. gemini/gemini-embedding-001"
+    ),
+    base_url: str = typer.Option(
+        None,
+        help="OpenAI-compatible endpoint, e.g. https://api.groq.com/openai/v1 "
+        "or https://integrate.api.nvidia.com/v1",
+    ),
+    api_key_env: str = typer.Option(
+        None, help="Environment variable holding the API key (the key is never read from config)"
+    ),
+    input_cost_per_mtok: float = typer.Option(
+        None, help="Price per 1M input tokens, for models LiteLLM does not price"
+    ),
+    output_cost_per_mtok: float = typer.Option(
+        None, help="Price per 1M output tokens, for models LiteLLM does not price"
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print estimated tokens and cost; make no LLM calls"
     ),
@@ -241,6 +258,11 @@ def _audit_command(
         ("fail_under_eval_margin", fail_under_eval_margin),
         ("max_cost", max_cost),
         ("facts", facts),
+        ("embedding_model", embedding_model),
+        ("base_url", base_url),
+        ("api_key_env", api_key_env),
+        ("input_cost_per_mtok", input_cost_per_mtok),
+        ("output_cost_per_mtok", output_cost_per_mtok),
     ):
         if value is not None:
             overrides["eval"][key] = value
@@ -274,6 +296,9 @@ def _audit_command(
         eval_result, eval_error, eval_costs = _maybe_eval(
             config, state, cache, use_cache=not no_cache
         )
+    except UnknownPricing as exc:
+        _err(str(exc))
+        raise typer.Exit(EXIT_COST) from exc
     except ProviderError as exc:
         _err(str(exc))
         raise typer.Exit(EXIT_AUTH) from exc
@@ -365,6 +390,11 @@ def _maybe_eval(
     )
     if plan.note:
         notes.append(plan.note)
+
+    # Checked before the dry-run return as well: `--dry-run` is exactly where a
+    # user goes to find out what a run will cost, so discovering there that the
+    # ceiling cannot be enforced is exactly the right time to say so.
+    eval_engine.enforce_pricing_known(config.eval, config.eval.max_cost)
 
     if config.dry_run:
         notes.append(plan.estimate.line())
